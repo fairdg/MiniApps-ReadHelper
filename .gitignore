@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+
+# Local-only files (secrets, tokens, personal config)
+.env
+.env.*
+*.local
+*.local.md
+config.local.json
+DEVLOG.local.md
