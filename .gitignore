@@ -9,5 +9,4 @@ build/
 .env.*
 *.local
 *.local.md
-config.local.json
 DEVLOG.local.md

@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "set-webhook": "node --env-file=.env.local scripts/set-webhook.mjs",
+    "migrate": "node --env-file=.env.local scripts/migrate.mjs"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
     "vue": "^3.5.39"
   },
   "devDependencies": {
