@@ -14,26 +14,37 @@ export default async function handler(req, res) {
   }
 
   const due = await getDueDeliveries()
+  let sent = 0
+  let failed = 0
 
   for (const delivery of due) {
-    const chunk = await getChunk(delivery.book_id, delivery.next_chunk_position)
+    try {
+      const chunk = await getChunk(delivery.book_id, delivery.next_chunk_position)
 
-    if (!chunk) {
-      await deactivateDelivery(delivery.id)
-      continue
-    }
+      if (!chunk) {
+        await deactivateDelivery(delivery.id)
+        continue
+      }
 
-    await sendMessage(delivery.telegram_id, chunk.content)
+      await sendMessage(delivery.telegram_id, chunk.content)
 
-    const total = await countChunks(delivery.book_id)
-    const nextPosition = delivery.next_chunk_position + 1
+      const total = await countChunks(delivery.book_id)
+      const nextPosition = delivery.next_chunk_position + 1
 
-    if (nextPosition >= total) {
-      await deactivateDelivery(delivery.id)
-    } else {
-      await advanceDelivery(delivery.id, nextPosition, delivery.interval_minutes)
+      if (nextPosition >= total) {
+        await deactivateDelivery(delivery.id)
+      } else {
+        await advanceDelivery(delivery.id, nextPosition, delivery.interval_minutes)
+      }
+
+      sent++
+    } catch (err) {
+      // Одна сломанная доставка (например, невалидный chat_id) не должна
+      // останавливать рассылку остальным пользователям.
+      console.error(`Delivery ${delivery.id} failed:`, err)
+      failed++
     }
   }
 
-  res.status(200).json({ processed: due.length })
+  res.status(200).json({ processed: due.length, sent, failed })
 }
