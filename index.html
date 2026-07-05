@@ -1,111 +1,14 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>ReadHelper</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div id="app">
-
-    <!-- Экран 1: список текстов -->
-    <section id="screen-home" class="screen active">
-      <header class="topbar">
-        <h1>ReadHelper</h1>
-        <button id="add-btn" class="icon-btn" aria-label="Добавить">+</button>
-      </header>
-
-      <div class="search-wrap">
-        <input type="text" placeholder="Поиск по текстам..." class="search-input" />
-      </div>
-
-      <ul class="text-list" id="text-list">
-        <li class="text-item" data-id="1">
-          <div class="text-item-icon">📄</div>
-          <div class="text-item-body">
-            <div class="text-item-title">Атомные привычки — глава 3</div>
-            <div class="text-item-meta">2 400 слов · 12 мин чтения</div>
-          </div>
-          <div class="text-item-progress">
-            <div class="progress-bar"><span style="width: 65%"></span></div>
-          </div>
-        </li>
-        <li class="text-item" data-id="2">
-          <div class="text-item-icon">🔗</div>
-          <div class="text-item-body">
-            <div class="text-item-title">Статья: Как работает память</div>
-            <div class="text-item-meta">980 слов · 5 мин чтения</div>
-          </div>
-          <div class="text-item-progress">
-            <div class="progress-bar"><span style="width: 10%"></span></div>
-          </div>
-        </li>
-        <li class="text-item" data-id="3">
-          <div class="text-item-icon">📄</div>
-          <div class="text-item-body">
-            <div class="text-item-title">Заметки к лекции по биологии</div>
-            <div class="text-item-meta">1 800 слов · 9 мин чтения</div>
-          </div>
-          <div class="text-item-progress">
-            <div class="progress-bar"><span style="width: 0%"></span></div>
-          </div>
-        </li>
-      </ul>
-    </section>
-
-    <!-- Экран 2: чтение текста -->
-    <section id="screen-reader" class="screen">
-      <header class="topbar">
-        <button id="back-btn" class="icon-btn" aria-label="Назад">←</button>
-        <h1 class="reader-title">Атомные привычки — глава 3</h1>
-        <button id="settings-btn" class="icon-btn" aria-label="Настройки">Aa</button>
-      </header>
-
-      <div class="reader-content" id="reader-content">
-        <p>Каждое действие, которое вы совершаете, — это голос за тип человека, которым вы хотите стать. Ни одно отдельное событие не способно преобразить ваши убеждения, но по мере накопления голосов новая идентичность начинает укрепляться.</p>
-        <p>Именно поэтому изменения происходят не благодаря силе воли в моменте, а благодаря системе, которая делает нужное поведение чуть более вероятным каждый день.</p>
-        <p>Привычка — это не то, чего вы достигаете. Это то, кем вы становитесь.</p>
-      </div>
-
-      <div class="reader-toolbar">
-        <button class="tool-btn" id="play-btn">▶ Слушать</button>
-        <div class="tool-progress">
-          <span>12:04</span>
-          <div class="progress-bar"><span style="width: 35%"></span></div>
-          <span>34:20</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Панель настроек текста (bottom sheet) -->
-    <div id="settings-sheet" class="sheet">
-      <div class="sheet-handle"></div>
-      <h2>Оформление</h2>
-
-      <div class="setting-row">
-        <span>Размер шрифта</span>
-        <div class="stepper">
-          <button id="font-minus">A-</button>
-          <span id="font-size-label">18</span>
-          <button id="font-plus">A+</button>
-        </div>
-      </div>
-
-      <div class="setting-row">
-        <span>Тема</span>
-        <div class="segmented">
-          <button class="seg-btn active" data-theme="auto">Авто</button>
-          <button class="seg-btn" data-theme="light">Светлая</button>
-          <button class="seg-btn" data-theme="dark">Тёмная</button>
-        </div>
-      </div>
-    </div>
-    <div id="sheet-backdrop" class="sheet-backdrop"></div>
-
-  </div>
-
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>ReadHelper</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
 </html>
