@@ -6,10 +6,10 @@ import ReaderScreen from './components/ReaderScreen.vue'
 const tg = window.Telegram?.WebApp
 
 const screen = ref('home') // 'home' | 'reader'
-const activeText = ref(null)
+const activeBook = ref(null)
 
-function openText(text) {
-  activeText.value = text
+function openText(book) {
+  activeBook.value = book
   screen.value = 'reader'
 }
 
@@ -34,5 +34,5 @@ onMounted(() => {
 
 <template>
   <HomeScreen v-if="screen === 'home'" @open-text="openText" />
-  <ReaderScreen v-else :text="activeText" @back="goHome" />
+  <ReaderScreen v-else :book="activeBook" @back="goHome" />
 </template>

@@ -1,9 +1,11 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import SettingsSheet from './SettingsSheet.vue'
+import { getBookChunks } from '../lib/api.js'
+import { getTelegramUser } from '../lib/telegramUser.js'
 
-defineProps({
-  text: { type: Object, required: true },
+const props = defineProps({
+  book: { type: Object, required: true },
 })
 
 const emit = defineEmits(['back'])
@@ -15,42 +17,63 @@ const fontSize = ref(18)
 const theme = ref('auto')
 const playing = ref(false)
 
+const loading = ref(true)
+const error = ref('')
+const chunks = ref([])
+const deliveredCount = ref(0)
+
+async function load() {
+  loading.value = true
+  error.value = ''
+  try {
+    const { telegramId } = getTelegramUser()
+    const data = await getBookChunks(props.book.id, telegramId)
+    chunks.value = data.chunks
+    deliveredCount.value = data.deliveredCount
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
 function togglePlay() {
   playing.value = !playing.value
   tg?.HapticFeedback?.impactOccurred('medium')
 }
+
+onMounted(load)
 </script>
 
 <template>
   <section class="screen">
     <header class="topbar">
       <button class="icon-btn" aria-label="Назад" @click="emit('back')">←</button>
-      <h1 class="reader-title">{{ text.title }}</h1>
+      <h1 class="reader-title">{{ book.title }}</h1>
       <button class="icon-btn" aria-label="Настройки" @click="settingsOpen = true">Aa</button>
     </header>
 
     <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
-      <p>
-        Каждое действие, которое вы совершаете, — это голос за тип человека, которым вы хотите
-        стать. Ни одно отдельное событие не способно преобразить ваши убеждения, но по мере
-        накопления голосов новая идентичность начинает укрепляться.
+      <p v-if="loading" class="state-message">Загружаю…</p>
+      <p v-else-if="error" class="state-message error">{{ error }}</p>
+      <p v-else-if="deliveredCount === 0" class="state-message">
+        Первая порция скоро придёт в Telegram — как только это случится, она появится и здесь.
       </p>
-      <p>
-        Именно поэтому изменения происходят не благодаря силе воли в моменте, а благодаря
-        системе, которая делает нужное поведение чуть более вероятным каждый день.
-      </p>
-      <p>Привычка — это не то, чего вы достигаете. Это то, кем вы становитесь.</p>
+      <template v-else>
+        <p v-for="chunk in chunks.slice(0, deliveredCount)" :key="chunk.position">
+          {{ chunk.content }}
+        </p>
+        <p v-if="deliveredCount < chunks.length" class="state-message">
+          Ещё {{ chunks.length - deliveredCount }} порций впереди — следующая придёт в Telegram по
+          расписанию.
+        </p>
+      </template>
     </div>
 
     <div class="reader-toolbar">
       <button class="tool-btn" @click="togglePlay">
         {{ playing ? '⏸ Пауза' : '▶ Слушать' }}
       </button>
-      <div class="tool-progress">
-        <span>12:04</span>
-        <div class="progress-bar"><span style="width: 35%" /></div>
-        <span>34:20</span>
-      </div>
     </div>
 
     <SettingsSheet
@@ -119,6 +142,15 @@ function togglePlay() {
   margin: 0 0 16px;
 }
 
+.state-message {
+  color: var(--hint);
+  font-size: 14px;
+}
+
+.state-message.error {
+  color: #e5484d;
+}
+
 .reader-toolbar {
   padding: 12px 16px 20px;
   border-top: 1px solid var(--separator);
@@ -137,31 +169,5 @@ function togglePlay() {
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-}
-
-.tool-progress {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: var(--hint);
-}
-
-.tool-progress .progress-bar {
-  flex: 1;
-}
-
-.progress-bar {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-}
-
-.progress-bar span {
-  display: block;
-  height: 100%;
-  background: var(--button);
-  border-radius: 2px;
 }
 </style>

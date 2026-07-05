@@ -1,64 +1,86 @@
 <script setup>
+import { ref, onMounted } from 'vue'
+import { listBooks } from '../lib/api.js'
+import { getTelegramUser } from '../lib/telegramUser.js'
+import AddBookSheet from './AddBookSheet.vue'
+
 const emit = defineEmits(['open-text'])
 
-const texts = [
-  {
-    id: 1,
-    icon: '📄',
-    title: 'Атомные привычки — глава 3',
-    meta: '2 400 слов · 12 мин чтения',
-    progress: 65,
-  },
-  {
-    id: 2,
-    icon: '🔗',
-    title: 'Статья: Как работает память',
-    meta: '980 слов · 5 мин чтения',
-    progress: 10,
-  },
-  {
-    id: 3,
-    icon: '📄',
-    title: 'Заметки к лекции по биологии',
-    meta: '1 800 слов · 9 мин чтения',
-    progress: 0,
-  },
-]
+const books = ref([])
+const loading = ref(true)
+const error = ref('')
+const addSheetOpen = ref(false)
 
-function addText() {
-  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
-  alert('Здесь будет добавление нового текста (файл, ссылка или вставленный текст).')
+function bookMeta(book) {
+  if (book.status === 'processing') return 'Обрабатывается…'
+  if (book.status === 'failed') return 'Не удалось обработать текст'
+  if (!book.total_chunks) return 'Нет порций'
+  return `${book.read_chunks}/${book.total_chunks} порций прочитано`
 }
+
+function bookProgress(book) {
+  if (!book.total_chunks) return 0
+  return Math.round((book.read_chunks / book.total_chunks) * 100)
+}
+
+async function load() {
+  loading.value = true
+  error.value = ''
+  try {
+    const { telegramId } = getTelegramUser()
+    const { books: fetched } = await listBooks(telegramId)
+    books.value = fetched
+  } catch (err) {
+    error.value = err.message
+  } finally {
+    loading.value = false
+  }
+}
+
+function openAddSheet() {
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
+  addSheetOpen.value = true
+}
+
+onMounted(load)
 </script>
 
 <template>
   <section class="screen">
     <header class="topbar">
       <h1>ReadHelper</h1>
-      <button class="icon-btn" aria-label="Добавить" @click="addText">+</button>
+      <button class="icon-btn" aria-label="Добавить" @click="openAddSheet">+</button>
     </header>
 
     <div class="search-wrap">
       <input type="text" placeholder="Поиск по текстам..." class="search-input" />
     </div>
 
-    <ul class="text-list">
+    <p v-if="loading" class="state-message">Загружаю…</p>
+    <p v-else-if="error" class="state-message error">{{ error }}</p>
+    <p v-else-if="!books.length" class="state-message">
+      Пока нет ни одной книги — нажми "+", чтобы добавить первую.
+    </p>
+
+    <ul v-else class="text-list">
       <li
-        v-for="text in texts"
-        :key="text.id"
+        v-for="book in books"
+        :key="book.id"
         class="text-item"
-        @click="emit('open-text', text)"
+        @click="emit('open-text', book)"
       >
-        <div class="text-item-icon">{{ text.icon }}</div>
+        <div class="text-item-icon">📄</div>
         <div class="text-item-body">
-          <div class="text-item-title">{{ text.title }}</div>
-          <div class="text-item-meta">{{ text.meta }}</div>
+          <div class="text-item-title">{{ book.title }}</div>
+          <div class="text-item-meta">{{ bookMeta(book) }}</div>
         </div>
         <div class="text-item-progress">
-          <div class="progress-bar"><span :style="{ width: text.progress + '%' }" /></div>
+          <div class="progress-bar"><span :style="{ width: bookProgress(book) + '%' }" /></div>
         </div>
       </li>
     </ul>
+
+    <AddBookSheet :open="addSheetOpen" @close="addSheetOpen = false" @added="load" />
   </section>
 </template>
 
@@ -119,6 +141,17 @@ function addText() {
 
 .search-input::placeholder {
   color: var(--hint);
+}
+
+.state-message {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--hint);
+  font-size: 14px;
+}
+
+.state-message.error {
+  color: #e5484d;
 }
 
 .text-list {
