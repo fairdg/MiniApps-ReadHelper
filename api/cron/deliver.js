@@ -1,10 +1,5 @@
-import {
-  getDueDeliveries,
-  advanceDelivery,
-  deactivateDelivery,
-} from '../../lib/repositories/deliveries.js'
-import { getChunk, countChunks } from '../../lib/repositories/chunks.js'
-import { sendMessage } from '../../lib/telegram.js'
+import { getDueDeliveries } from '../../lib/repositories/deliveries.js'
+import { deliverNextChunk } from '../../lib/delivery.js'
 
 export default async function handler(req, res) {
   const expectedSecret = process.env.CRON_SECRET
@@ -19,25 +14,8 @@ export default async function handler(req, res) {
 
   for (const delivery of due) {
     try {
-      const chunk = await getChunk(delivery.book_id, delivery.next_chunk_position)
-
-      if (!chunk) {
-        await deactivateDelivery(delivery.id)
-        continue
-      }
-
-      await sendMessage(delivery.telegram_id, chunk.content)
-
-      const total = await countChunks(delivery.book_id)
-      const nextPosition = delivery.next_chunk_position + 1
-
-      if (nextPosition >= total) {
-        await deactivateDelivery(delivery.id)
-      } else {
-        await advanceDelivery(delivery.id, nextPosition, delivery.interval_minutes)
-      }
-
-      sent++
+      const result = await deliverNextChunk(delivery)
+      if (result.sent) sent++
     } catch (err) {
       // Одна сломанная доставка (например, невалидный chat_id) не должна
       // останавливать рассылку остальным пользователям.

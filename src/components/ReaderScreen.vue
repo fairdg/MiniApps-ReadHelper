@@ -1,14 +1,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import SettingsSheet from './SettingsSheet.vue'
-import { getBookChunks, updateDeliveryFrequency } from '../lib/api.js'
+import { getBookChunks, updateDeliveryFrequency, deliverNow } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
+import { isDevMode } from '../lib/devMode.js'
 
 const props = defineProps({
   book: { type: Object, required: true },
 })
 
 const emit = defineEmits(['back'])
+
+const devMode = isDevMode()
 
 const settingsOpen = ref(false)
 const fontSize = ref(18)
@@ -19,6 +22,9 @@ const loading = ref(true)
 const error = ref('')
 const chunks = ref([])
 const deliveredCount = ref(0)
+
+const sendingNow = ref(false)
+const sendNowError = ref('')
 
 // Группируем доставленные порции по главам, чтобы в UI они шли отдельными
 // блоками, а не сплошным текстом. chunk.chapter === null — глав не нашли,
@@ -65,6 +71,24 @@ async function changeNotificationsPerDay(value) {
   }
 }
 
+async function sendNow() {
+  sendingNow.value = true
+  sendNowError.value = ''
+  try {
+    const { telegramId } = getTelegramUser()
+    const result = await deliverNow(props.book.id, telegramId)
+    if (result.sent) {
+      await load()
+    } else {
+      sendNowError.value = 'Больше нечего отправлять — все порции уже доставлены'
+    }
+  } catch (err) {
+    sendNowError.value = err.message
+  } finally {
+    sendingNow.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -92,6 +116,17 @@ onMounted(load)
           расписанию.
         </p>
       </template>
+    </div>
+
+    <div v-if="devMode" class="dev-toolbar">
+      <button
+        class="dev-btn"
+        :disabled="sendingNow || deliveredCount >= chunks.length"
+        @click="sendNow"
+      >
+        {{ sendingNow ? 'Отправляю…' : 'Отправить порцию сейчас' }}
+      </button>
+      <p v-if="sendNowError" class="state-message error">{{ sendNowError }}</p>
     </div>
 
     <SettingsSheet
@@ -182,5 +217,25 @@ onMounted(load)
 
 .state-message.error {
   color: #e5484d;
+}
+
+.dev-toolbar {
+  padding: 12px 16px 20px;
+  border-top: 1px dashed var(--separator);
+}
+
+.dev-btn {
+  width: 100%;
+  border: 1px dashed var(--hint);
+  background: none;
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.dev-btn:disabled {
+  opacity: 0.5;
 }
 </style>

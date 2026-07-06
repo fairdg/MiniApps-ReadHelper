@@ -2,7 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { listBooks } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
+import { isDevMode, setDevMode } from '../lib/devMode.js'
 import AddBookSheet from './AddBookSheet.vue'
+import AppSettingsSheet from './AppSettingsSheet.vue'
 
 const emit = defineEmits(['open-text'])
 
@@ -10,6 +12,13 @@ const books = ref([])
 const loading = ref(true)
 const error = ref('')
 const addSheetOpen = ref(false)
+const appSettingsOpen = ref(false)
+const devMode = ref(isDevMode())
+
+function changeDevMode(value) {
+  devMode.value = value
+  setDevMode(value)
+}
 
 function bookMeta(book) {
   if (book.status === 'processing') return 'Обрабатывается…'
@@ -49,7 +58,10 @@ onMounted(load)
   <section class="screen">
     <header class="topbar">
       <h1>ReadHelper</h1>
-      <button class="icon-btn" aria-label="Добавить" @click="openAddSheet">+</button>
+      <div class="header-actions">
+        <button class="icon-btn" aria-label="Настройки" @click="appSettingsOpen = true">⚙</button>
+        <button class="icon-btn" aria-label="Добавить" @click="openAddSheet">+</button>
+      </div>
     </header>
 
     <p v-if="loading" class="state-message">Загружаю…</p>
@@ -77,6 +89,12 @@ onMounted(load)
     </ul>
 
     <AddBookSheet :open="addSheetOpen" @close="addSheetOpen = false" @added="load" />
+    <AppSettingsSheet
+      :open="appSettingsOpen"
+      :dev-mode="devMode"
+      @close="appSettingsOpen = false"
+      @update:dev-mode="changeDevMode"
+    />
   </section>
 </template>
 
@@ -105,6 +123,11 @@ onMounted(load)
   margin: 0;
   flex: 1;
   text-align: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .icon-btn {

@@ -33,3 +33,12 @@ export async function updateDeliveryFrequency(bookId, telegramId, notificationsP
   })
   return parseOrThrow(res)
 }
+
+export async function deliverNow(bookId, telegramId) {
+  const res = await fetch(`/api/books/${bookId}/deliver-now`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId }),
+  })
+  return parseOrThrow(res)
+}
