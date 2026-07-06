@@ -3,7 +3,7 @@ import { createBook, markBookReady, markBookFailed } from '../../server/reposito
 import { saveChunks } from '../../server/repositories/chunks.js'
 import { createDelivery, intervalMinutesFromPerDay } from '../../server/repositories/deliveries.js'
 import { chunkBook } from '../../server/chunking.js'
-import { stripImages, assertReadableText } from '../../server/textClean.js'
+import { normalizeBookText, assertReadableText } from '../../server/textClean.js'
 import { extractArticle } from '../../server/articleExtractor.js'
 
 export default async function handler(req, res) {
@@ -46,7 +46,7 @@ export default async function handler(req, res) {
     return
   }
 
-  const cleanText = stripImages(sourceText)
+  const cleanText = normalizeBookText(sourceText)
 
   const user = await upsertUser({ telegramId, username, timezone })
   const book = await createBook({ userId: user.id, title: sourceTitle, sourceText: cleanText })

@@ -16,6 +16,63 @@ export function stripImages(text) {
     .trim()
 }
 
+// Текст, скопированный из PDF/скана книги, приходит "жёстко" перенесённым по
+// ширине страницы — каждая визуальная строка кончается своим \n, а не только
+// настоящие абзацы. Из-за этого дробление (которое режет по пустой строке)
+// принимает каждую строку страницы за отдельный абзац, и в Telegram улетают
+// рваные куски с "случайными" пробелами вместо связного текста.
+function reflowWrappedLines(text) {
+  return text
+    .split(/\n{2,}/)
+    .map((block) =>
+      block
+        // Слово, перенесённое по слогам на стыке строк ("опусто-\nшить" → "опустошить").
+        .replace(/(\p{L})-\n(\p{Ll})/gu, '$1$2')
+        // Строка сама по себе — просто номер страницы: не часть текста.
+        .split('\n')
+        .filter((line) => !/^\s*\d{1,4}\s*$/.test(line))
+        .join('\n')
+        // Остальные переносы внутри абзаца — перенос по ширине страницы, не
+        // конец абзаца: склеиваем обратно в связный текст через пробел.
+        .replace(/\s*\n\s*/g, ' ')
+        .replace(/[ \t]{2,}/g, ' ')
+        .trim(),
+    )
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+// Титульный/выходные данные книги (аннотация "с этой книгой также читают",
+// титульный лист, копирайт-страница с УДК/ББК/ISBN) — не часть текста, который
+// хочется получать порциями. Такая страница почти всегда идёт единым блоком и
+// надёжно опознаётся по библиотечным индексам УДК/ББК или ISBN — до конца
+// этого блока (включительно) просто отрезаем всё как обложку/выходные данные.
+const IMPRINT_MARKER_RE = /\b(УДК|ББК|ISBN)\b/i
+
+function stripFrontMatter(text) {
+  const blocks = text.split(/\n{2,}/)
+  let imprintIndex = -1
+
+  for (let i = 0; i < blocks.length; i++) {
+    if (IMPRINT_MARKER_RE.test(blocks[i])) imprintIndex = i
+  }
+
+  if (imprintIndex === -1) return text
+  return blocks
+    .slice(imprintIndex + 1)
+    .join('\n\n')
+    .trim()
+}
+
+// Полная нормализация текста перед сохранением/дроблением: приводит переносы
+// строк, вырезает картинки, убирает титульный лист/выходные данные (если
+// опознаны) и переносы по ширине страницы.
+export function normalizeBookText(text) {
+  const withoutImages = stripImages(text)
+  const withoutFrontMatter = stripFrontMatter(withoutImages)
+  return reflowWrappedLines(withoutFrontMatter)
+}
+
 const NULL_BYTE = String.fromCharCode(0)
 const REPLACEMENT_CHAR = String.fromCharCode(0xfffd)
 
