@@ -77,7 +77,14 @@ const ENDS_WITH_PAGE_NUMBER_RE = /\d{1,4}\s*$/
 
 function looksLikeTableOfContents(block) {
   const dotLeaders = block.match(DOT_LEADER_RE)
-  if (dotLeaders && dotLeaders.length >= 2) return true
+  if (dotLeaders) {
+    // Несколько прогонов точек в одном абзаце — точно оглавление одним блоком.
+    // Один прогон тоже считается, если он и есть большая часть абзаца: так
+    // выглядит одна строка оглавления ("Введение . . . . . . 12"), когда
+    // каждый пункт — отдельный абзац, а не общий список без пустых строк.
+    const dotChars = dotLeaders.reduce((sum, match) => sum + match.length, 0)
+    if (dotLeaders.length >= 2 || dotChars / block.length >= 0.3) return true
+  }
 
   const lines = block
     .split('\n')
