@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   }
 
   const intervalMinutes = intervalMinutesFromPerDay(notificationsPerDay)
-  await updateDeliveryInterval(bookId, intervalMinutes)
+  await updateDeliveryInterval(bookId, intervalMinutes, user.timezone)
 
   res.status(200).json({ notificationsPerDay: perDayFromIntervalMinutes(intervalMinutes) })
 }

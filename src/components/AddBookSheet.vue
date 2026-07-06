@@ -29,13 +29,14 @@ async function submit() {
   error.value = ''
 
   try {
-    const { telegramId, username } = getTelegramUser()
+    const { telegramId, username, timezone } = getTelegramUser()
     await addBook({
       telegramId,
       username,
       title: title.value.trim(),
       text: text.value.trim(),
       notificationsPerDay: notificationsPerDay.value,
+      timezone,
     })
     title.value = ''
     text.value = ''

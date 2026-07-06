@@ -5,7 +5,9 @@ import { deliverNextChunk } from '../../../lib/delivery.js'
 
 // Ручной триггер для режима разработчика: отправляет следующую порцию
 // прямо сейчас, в обход расписания — чтобы не ждать реальный интервал
-// доставки при проверке функциональности.
+// доставки при проверке функциональности. Доступен только владельцу
+// (OWNER_TELEGRAM_ID) — обычные пользователи не должны иметь возможность
+// обойти расписание, даже если найдут кнопку в devtools.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).end()
@@ -17,6 +19,12 @@ export default async function handler(req, res) {
 
   if (!bookId || !telegramId) {
     res.status(400).json({ error: 'id и telegramId обязательны' })
+    return
+  }
+
+  const ownerId = process.env.OWNER_TELEGRAM_ID
+  if (ownerId && String(telegramId) !== ownerId) {
+    res.status(403).json({ error: 'Доступно только в режиме разработчика владельца' })
     return
   }
 
@@ -35,6 +43,10 @@ export default async function handler(req, res) {
     return
   }
 
-  const result = await deliverNextChunk({ ...delivery, telegram_id: user.telegram_id })
+  const result = await deliverNextChunk({
+    ...delivery,
+    telegram_id: user.telegram_id,
+    timezone: user.timezone,
+  })
   res.status(200).json(result)
 }

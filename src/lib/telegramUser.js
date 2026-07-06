@@ -11,10 +11,21 @@ function getDevUser() {
   return { telegramId: Number(id), username: 'dev_user' }
 }
 
+// IANA-таймзона браузера/устройства — используется бэкендом, чтобы не
+// присылать уведомления ночью по местному времени пользователя.
+function getTimezone() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone ?? null
+  } catch {
+    return null
+  }
+}
+
 export function getTelegramUser() {
   const user = window.Telegram?.WebApp?.initDataUnsafe?.user
-  if (user?.id) {
-    return { telegramId: user.id, username: user.username ?? null }
-  }
-  return getDevUser()
+  const base = user?.id
+    ? { telegramId: user.id, username: user.username ?? null }
+    : getDevUser()
+
+  return { ...base, timezone: getTimezone() }
 }

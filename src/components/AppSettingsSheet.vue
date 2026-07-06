@@ -2,6 +2,7 @@
 defineProps({
   open: { type: Boolean, default: false },
   devMode: { type: Boolean, required: true },
+  owner: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['close', 'update:devMode'])
@@ -13,30 +14,34 @@ const emit = defineEmits(['close', 'update:devMode'])
     <div class="sheet-handle" />
     <h2>Настройки приложения</h2>
 
-    <div class="setting-row">
-      <span>Режим разработчика</span>
-      <div class="segmented">
-        <button
-          class="seg-btn"
-          :class="{ active: !devMode }"
-          @click="emit('update:devMode', false)"
-        >
-          Выкл
-        </button>
-        <button
-          class="seg-btn"
-          :class="{ active: devMode }"
-          @click="emit('update:devMode', true)"
-        >
-          Вкл
-        </button>
+    <template v-if="owner">
+      <div class="setting-row">
+        <span>Режим разработчика</span>
+        <div class="segmented">
+          <button
+            class="seg-btn"
+            :class="{ active: !devMode }"
+            @click="emit('update:devMode', false)"
+          >
+            Выкл
+          </button>
+          <button
+            class="seg-btn"
+            :class="{ active: devMode }"
+            @click="emit('update:devMode', true)"
+          >
+            Вкл
+          </button>
+        </div>
       </div>
-    </div>
 
-    <p v-if="devMode" class="hint">
-      В режиме разработчика на экране чтения появится кнопка "Отправить порцию сейчас" — для
-      проверки доставки без ожидания реального интервала.
-    </p>
+      <p v-if="devMode" class="hint">
+        В режиме разработчика на экране чтения появится кнопка "Отправить порцию сейчас" — для
+        проверки доставки без ожидания реального интервала.
+      </p>
+    </template>
+
+    <p v-else class="hint">Здесь скоро появятся настройки приложения.</p>
   </div>
 </template>
 

@@ -6,11 +6,11 @@ async function parseOrThrow(res) {
   return res.json()
 }
 
-export async function addBook({ telegramId, username, title, text, notificationsPerDay }) {
+export async function addBook({ telegramId, username, title, text, notificationsPerDay, timezone }) {
   const res = await fetch('/api/books/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, username, title, text, notificationsPerDay }),
+    body: JSON.stringify({ telegramId, username, title, text, notificationsPerDay, timezone }),
   })
   return parseOrThrow(res)
 }

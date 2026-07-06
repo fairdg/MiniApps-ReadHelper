@@ -10,14 +10,14 @@ export default async function handler(req, res) {
     return
   }
 
-  const { telegramId, username, title, text, notificationsPerDay } = req.body ?? {}
+  const { telegramId, username, title, text, notificationsPerDay, timezone } = req.body ?? {}
 
   if (!telegramId || !title || !text) {
     res.status(400).json({ error: 'telegramId, title и text обязательны' })
     return
   }
 
-  const user = await upsertUser({ telegramId, username })
+  const user = await upsertUser({ telegramId, username, timezone })
   const book = await createBook({ userId: user.id, title, sourceText: text })
 
   try {

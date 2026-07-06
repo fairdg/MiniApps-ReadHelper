@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import SettingsSheet from './SettingsSheet.vue'
 import { getBookChunks, updateDeliveryFrequency, deliverNow } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
-import { isDevMode } from '../lib/devMode.js'
+import { isDevMode, isOwner } from '../lib/devMode.js'
 
 const props = defineProps({
   book: { type: Object, required: true },
@@ -11,7 +11,9 @@ const props = defineProps({
 
 const emit = defineEmits(['back'])
 
-const devMode = isDevMode()
+// Кнопка "отправить сейчас" — только владельцу с включённым режимом
+// разработчика. Реальная защита от обхода — на бэкенде (deliver-now.js).
+const devMode = isDevMode() && isOwner(getTelegramUser().telegramId)
 
 const settingsOpen = ref(false)
 const fontSize = ref(18)

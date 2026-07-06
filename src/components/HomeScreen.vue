@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { listBooks } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
-import { isDevMode, setDevMode } from '../lib/devMode.js'
+import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
 
@@ -14,6 +14,7 @@ const error = ref('')
 const addSheetOpen = ref(false)
 const appSettingsOpen = ref(false)
 const devMode = ref(isDevMode())
+const owner = isOwner(getTelegramUser().telegramId)
 
 function changeDevMode(value) {
   devMode.value = value
@@ -92,6 +93,7 @@ onMounted(load)
     <AppSettingsSheet
       :open="appSettingsOpen"
       :dev-mode="devMode"
+      :owner="owner"
       @close="appSettingsOpen = false"
       @update:dev-mode="changeDevMode"
     />
