@@ -3,6 +3,7 @@ import { createBook, markBookReady, markBookFailed } from '../../lib/repositorie
 import { saveChunks } from '../../lib/repositories/chunks.js'
 import { createDelivery, intervalMinutesFromPerDay } from '../../lib/repositories/deliveries.js'
 import { chunkBook } from '../../lib/chunking.js'
+import { stripImages } from '../../lib/textClean.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,11 +18,13 @@ export default async function handler(req, res) {
     return
   }
 
+  const cleanText = stripImages(text)
+
   const user = await upsertUser({ telegramId, username, timezone })
-  const book = await createBook({ userId: user.id, title, sourceText: text })
+  const book = await createBook({ userId: user.id, title, sourceText: cleanText })
 
   try {
-    const chunks = await chunkBook(text)
+    const chunks = await chunkBook(cleanText)
     await saveChunks(book.id, chunks)
     await markBookReady(book.id)
     const delivery = await createDelivery(book.id, intervalMinutesFromPerDay(notificationsPerDay))

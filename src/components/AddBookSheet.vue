@@ -14,9 +14,30 @@ const text = ref('')
 const notificationsPerDay = ref(4)
 const submitting = ref(false)
 const error = ref('')
+const fileName = ref('')
 
 function changeFrequency(delta) {
   notificationsPerDay.value = Math.min(8, Math.max(1, notificationsPerDay.value + delta))
+}
+
+function onFileSelected(event) {
+  const file = event.target.files?.[0]
+  if (!file) return
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    text.value = String(reader.result ?? '')
+    fileName.value = file.name
+    if (!title.value.trim()) {
+      title.value = file.name.replace(/\.[^./]+$/, '')
+    }
+  }
+  reader.onerror = () => {
+    error.value = 'Не удалось прочитать файл'
+  }
+  reader.readAsText(file)
+
+  event.target.value = ''
 }
 
 async function submit() {
@@ -40,6 +61,7 @@ async function submit() {
     })
     title.value = ''
     text.value = ''
+    fileName.value = ''
     notificationsPerDay.value = 4
     emit('added')
     emit('close')
@@ -58,10 +80,16 @@ async function submit() {
     <h2>Добавить текст</h2>
 
     <input v-model="title" class="input" type="text" placeholder="Название" />
+
+    <label class="file-btn">
+      📎 {{ fileName || 'Загрузить .txt файл' }}
+      <input type="file" accept=".txt,.md,text/plain,text/markdown" @change="onFileSelected" />
+    </label>
+
     <textarea
       v-model="text"
       class="textarea"
-      placeholder="Вставь текст книги или статьи целиком..."
+      placeholder="...или вставь текст книги или статьи целиком"
       rows="6"
     />
 
@@ -115,6 +143,27 @@ async function submit() {
   margin: 0 0 14px;
   color: var(--hint);
   font-weight: 500;
+}
+
+.file-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  background: var(--secondary-bg);
+  color: var(--hint);
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-btn input[type='file'] {
+  display: none;
 }
 
 .input,
