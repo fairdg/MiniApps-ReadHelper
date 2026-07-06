@@ -2,6 +2,8 @@
 import { ref } from 'vue'
 import { addBook } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
+import { blurOnOutsideTap } from '../lib/tapOutside.js'
+import IconAttachment from './icons/IconAttachment.vue'
 
 defineProps({
   open: { type: Boolean, default: false },
@@ -80,7 +82,7 @@ async function submit() {
 
 <template>
   <div class="sheet-backdrop" :class="{ open }" @click="emit('close')" />
-  <div class="sheet" :class="{ open }">
+  <div class="sheet" :class="{ open }" @click="blurOnOutsideTap">
     <div class="sheet-handle" />
     <h2>Добавить текст</h2>
 
@@ -89,7 +91,8 @@ async function submit() {
     <input v-model="url" class="input" type="url" placeholder="Ссылка на статью..." />
 
     <label class="file-btn">
-      📎 {{ fileName || 'Загрузить .txt файл' }}
+      <IconAttachment />
+      <span>{{ fileName || 'Загрузить .txt файл' }}</span>
       <input type="file" accept=".txt,.md,text/plain,text/markdown" @change="onFileSelected" />
     </label>
 
@@ -153,7 +156,9 @@ async function submit() {
 }
 
 .file-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   box-sizing: border-box;
   text-align: left;
@@ -164,6 +169,13 @@ async function submit() {
   font-size: 13px;
   margin-bottom: 10px;
   cursor: pointer;
+}
+
+.file-btn svg {
+  flex-shrink: 0;
+}
+
+.file-btn span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -181,7 +193,8 @@ async function submit() {
   color: var(--text);
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 15px;
+  /* 16px — минимум, ниже которого iOS Safari сам зумит страницу при фокусе */
+  font-size: 16px;
   font-family: inherit;
   margin-bottom: 10px;
   resize: vertical;

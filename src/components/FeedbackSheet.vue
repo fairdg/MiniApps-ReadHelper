@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { sendFeedback } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
+import { blurOnOutsideTap } from '../lib/tapOutside.js'
 
 defineProps({
   open: { type: Boolean, default: false },
@@ -44,7 +45,7 @@ function close() {
 
 <template>
   <div class="sheet-backdrop" :class="{ open }" @click="close" />
-  <div class="sheet" :class="{ open }">
+  <div class="sheet" :class="{ open }" @click="blurOnOutsideTap">
     <div class="sheet-handle" />
     <h2>Обратная связь</h2>
 
@@ -111,7 +112,8 @@ function close() {
   color: var(--text);
   padding: 10px 14px;
   border-radius: 12px;
-  font-size: 15px;
+  /* 16px — минимум, ниже которого iOS Safari сам зумит страницу при фокусе */
+  font-size: 16px;
   font-family: inherit;
   margin-bottom: 10px;
   resize: vertical;
