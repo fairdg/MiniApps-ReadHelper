@@ -4,6 +4,7 @@ import SettingsSheet from './SettingsSheet.vue'
 import { getBookChunks, updateDeliveryFrequency, deliverNow } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, isOwner } from '../lib/devMode.js'
+import IconGear from './icons/IconGear.vue'
 
 const props = defineProps({
   book: { type: Object, required: true },
@@ -99,7 +100,9 @@ onMounted(load)
     <header class="topbar">
       <button class="icon-btn" aria-label="Назад" @click="emit('back')">←</button>
       <h1 class="reader-title">{{ book.title }}</h1>
-      <button class="icon-btn" aria-label="Настройки" @click="settingsOpen = true">⚙</button>
+      <button class="icon-btn" aria-label="Настройки" @click="settingsOpen = true">
+        <IconGear />
+      </button>
     </header>
 
     <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
@@ -111,7 +114,10 @@ onMounted(load)
       <template v-else>
         <div v-for="(section, i) in groupedSections" :key="i" class="chapter-section">
           <h2 v-if="section.chapter" class="chapter-heading">{{ section.chapter }}</h2>
-          <p v-for="chunk in section.chunks" :key="chunk.position">{{ chunk.content }}</p>
+          <div v-for="chunk in section.chunks" :key="chunk.position" class="message-block">
+            <div class="message-label">Порция {{ chunk.position + 1 }}</div>
+            <p>{{ chunk.content }}</p>
+          </div>
         </div>
         <p v-if="deliveredCount < chunks.length" class="state-message">
           Ещё {{ chunks.length - deliveredCount }} порций впереди — следующая придёт в Telegram по
@@ -195,8 +201,24 @@ onMounted(load)
   overflow-y: auto;
 }
 
-.reader-content p {
-  margin: 0 0 16px;
+.message-block {
+  background: var(--secondary-bg);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.message-block p {
+  margin: 0;
+}
+
+.message-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
 }
 
 .chapter-section + .chapter-section {

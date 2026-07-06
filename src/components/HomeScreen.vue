@@ -5,6 +5,7 @@ import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
+import IconGear from './icons/IconGear.vue'
 
 const emit = defineEmits(['open-text'])
 
@@ -71,7 +72,9 @@ onMounted(load)
     <header class="topbar">
       <h1>ReadHelper</h1>
       <div class="header-actions">
-        <button class="icon-btn" aria-label="Настройки" @click="appSettingsOpen = true">⚙</button>
+        <button class="icon-btn" aria-label="Настройки" @click="appSettingsOpen = true">
+          <IconGear />
+        </button>
         <button class="icon-btn" aria-label="Добавить" @click="openAddSheet">+</button>
       </div>
     </header>
