@@ -2,6 +2,7 @@ import { getUserByTelegramId } from '../../../lib/repositories/users.js'
 import { getBookById } from '../../../lib/repositories/books.js'
 import {
   updateDeliveryInterval,
+  setDeliveryActive,
   intervalMinutesFromPerDay,
   perDayFromIntervalMinutes,
 } from '../../../lib/repositories/deliveries.js'
@@ -13,10 +14,10 @@ export default async function handler(req, res) {
   }
 
   const bookId = Number(req.query.id)
-  const { telegramId, notificationsPerDay } = req.body ?? {}
+  const { telegramId, notificationsPerDay, isActive } = req.body ?? {}
 
-  if (!bookId || !telegramId || !notificationsPerDay) {
-    res.status(400).json({ error: 'id, telegramId и notificationsPerDay обязательны' })
+  if (!bookId || !telegramId || (notificationsPerDay == null && isActive == null)) {
+    res.status(400).json({ error: 'id, telegramId и notificationsPerDay/isActive обязательны' })
     return
   }
 
@@ -28,8 +29,18 @@ export default async function handler(req, res) {
     return
   }
 
-  const intervalMinutes = intervalMinutesFromPerDay(notificationsPerDay)
-  await updateDeliveryInterval(bookId, intervalMinutes, user.timezone)
+  let intervalMinutes
+  if (notificationsPerDay != null) {
+    intervalMinutes = intervalMinutesFromPerDay(notificationsPerDay)
+    await updateDeliveryInterval(bookId, intervalMinutes, user.timezone)
+  }
 
-  res.status(200).json({ notificationsPerDay: perDayFromIntervalMinutes(intervalMinutes) })
+  if (isActive != null) {
+    await setDeliveryActive(bookId, Boolean(isActive))
+  }
+
+  res.status(200).json({
+    ...(intervalMinutes != null && { notificationsPerDay: perDayFromIntervalMinutes(intervalMinutes) }),
+    ...(isActive != null && { isActive: Boolean(isActive) }),
+  })
 }

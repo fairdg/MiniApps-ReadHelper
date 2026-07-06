@@ -38,5 +38,6 @@ export default async function handler(req, res) {
     chunks,
     deliveredCount: delivery?.next_chunk_position ?? 0,
     notificationsPerDay: perDayFromIntervalMinutes(delivery?.interval_minutes),
+    deliveryActive: delivery?.is_active ?? false,
   })
 }

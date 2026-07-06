@@ -11,6 +11,7 @@ const emit = defineEmits(['close', 'added'])
 
 const title = ref('')
 const text = ref('')
+const url = ref('')
 const notificationsPerDay = ref(4)
 const submitting = ref(false)
 const error = ref('')
@@ -41,8 +42,10 @@ function onFileSelected(event) {
 }
 
 async function submit() {
-  if (!title.value.trim() || !text.value.trim()) {
-    error.value = 'Заполни название и текст'
+  const hasUrl = Boolean(url.value.trim())
+
+  if (!hasUrl && (!title.value.trim() || !text.value.trim())) {
+    error.value = 'Заполни название и текст (или вставь ссылку на статью)'
     return
   }
 
@@ -54,13 +57,15 @@ async function submit() {
     await addBook({
       telegramId,
       username,
-      title: title.value.trim(),
-      text: text.value.trim(),
+      title: title.value.trim() || undefined,
+      text: hasUrl ? undefined : text.value.trim(),
+      url: hasUrl ? url.value.trim() : undefined,
       notificationsPerDay: notificationsPerDay.value,
       timezone,
     })
     title.value = ''
     text.value = ''
+    url.value = ''
     fileName.value = ''
     notificationsPerDay.value = 4
     emit('added')
@@ -79,7 +84,9 @@ async function submit() {
     <div class="sheet-handle" />
     <h2>Добавить текст</h2>
 
-    <input v-model="title" class="input" type="text" placeholder="Название" />
+    <input v-model="title" class="input" type="text" placeholder="Название (необязательно для ссылки)" />
+
+    <input v-model="url" class="input" type="url" placeholder="Ссылка на статью..." />
 
     <label class="file-btn">
       📎 {{ fileName || 'Загрузить .txt файл' }}

@@ -12,7 +12,9 @@
     "migrate": "node --env-file=.env.local scripts/migrate.mjs"
   },
   "dependencies": {
+    "@mozilla/readability": "^0.6.0",
     "@neondatabase/serverless": "^0.10.4",
+    "jsdom": "^29.1.1",
     "vue": "^3.5.39"
   },
   "devDependencies": {

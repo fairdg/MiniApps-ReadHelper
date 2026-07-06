@@ -6,17 +6,32 @@ async function parseOrThrow(res) {
   return res.json()
 }
 
-export async function addBook({ telegramId, username, title, text, notificationsPerDay, timezone }) {
+export async function addBook({
+  telegramId,
+  username,
+  title,
+  text,
+  url,
+  notificationsPerDay,
+  timezone,
+}) {
   const res = await fetch('/api/books/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, username, title, text, notificationsPerDay, timezone }),
+    body: JSON.stringify({ telegramId, username, title, text, url, notificationsPerDay, timezone }),
   })
   return parseOrThrow(res)
 }
 
 export async function listBooks(telegramId) {
   const res = await fetch(`/api/books/list?telegramId=${telegramId}`)
+  return parseOrThrow(res)
+}
+
+export async function deleteBook(bookId, telegramId) {
+  const res = await fetch(`/api/books/${bookId}?telegramId=${telegramId}`, {
+    method: 'DELETE',
+  })
   return parseOrThrow(res)
 }
 
@@ -30,6 +45,15 @@ export async function updateDeliveryFrequency(bookId, telegramId, notificationsP
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ telegramId, notificationsPerDay }),
+  })
+  return parseOrThrow(res)
+}
+
+export async function updateDeliveryActive(bookId, telegramId, isActive) {
+  const res = await fetch(`/api/books/${bookId}/delivery`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId, isActive }),
   })
   return parseOrThrow(res)
 }

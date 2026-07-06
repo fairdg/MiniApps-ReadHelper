@@ -4,6 +4,7 @@ const props = defineProps({
   fontSize: { type: Number, required: true },
   theme: { type: String, required: true },
   notificationsPerDay: { type: Number, required: true },
+  deliveryActive: { type: Boolean, required: true },
 })
 
 const emit = defineEmits([
@@ -11,6 +12,7 @@ const emit = defineEmits([
   'update:fontSize',
   'update:theme',
   'update:notificationsPerDay',
+  'update:deliveryActive',
 ])
 
 const themes = [
@@ -66,6 +68,26 @@ function changeFrequency(delta) {
         <button @click="changeFrequency(-1)">-</button>
         <span>{{ notificationsPerDay }}</span>
         <button @click="changeFrequency(1)">+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span>Доставка</span>
+      <div class="segmented">
+        <button
+          class="seg-btn"
+          :class="{ active: !deliveryActive }"
+          @click="emit('update:deliveryActive', false)"
+        >
+          Пауза
+        </button>
+        <button
+          class="seg-btn"
+          :class="{ active: deliveryActive }"
+          @click="emit('update:deliveryActive', true)"
+        >
+          Активна
+        </button>
       </div>
     </div>
   </div>

@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import SettingsSheet from './SettingsSheet.vue'
-import { getBookChunks, updateDeliveryFrequency, deliverNow } from '../lib/api.js'
+import { getBookChunks, updateDeliveryFrequency, updateDeliveryActive, deliverNow } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, isOwner } from '../lib/devMode.js'
 import IconGear from './icons/IconGear.vue'
@@ -20,6 +20,7 @@ const settingsOpen = ref(false)
 const fontSize = ref(18)
 const theme = ref('auto')
 const notificationsPerDay = ref(4)
+const deliveryActive = ref(true)
 
 const loading = ref(true)
 const error = ref('')
@@ -57,6 +58,7 @@ async function load() {
     chunks.value = data.chunks
     deliveredCount.value = data.deliveredCount
     notificationsPerDay.value = data.notificationsPerDay
+    deliveryActive.value = data.deliveryActive
   } catch (err) {
     error.value = err.message
   } finally {
@@ -71,6 +73,16 @@ async function changeNotificationsPerDay(value) {
     await updateDeliveryFrequency(props.book.id, telegramId, value)
   } catch (err) {
     console.error('Не удалось обновить частоту уведомлений:', err)
+  }
+}
+
+async function changeDeliveryActive(value) {
+  deliveryActive.value = value
+  try {
+    const { telegramId } = getTelegramUser()
+    await updateDeliveryActive(props.book.id, telegramId, value)
+  } catch (err) {
+    console.error('Не удалось изменить статус доставки:', err)
   }
 }
 
@@ -142,10 +154,12 @@ onMounted(load)
       :font-size="fontSize"
       :theme="theme"
       :notifications-per-day="notificationsPerDay"
+      :delivery-active="deliveryActive"
       @close="settingsOpen = false"
       @update:font-size="fontSize = $event"
       @update:theme="theme = $event"
       @update:notifications-per-day="changeNotificationsPerDay"
+      @update:delivery-active="changeDeliveryActive"
     />
   </section>
 </template>

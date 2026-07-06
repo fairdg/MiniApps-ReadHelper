@@ -1,13 +1,15 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { listBooks } from '../lib/api.js'
+import { listBooks, deleteBook } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
+import { confirmDialog } from '../lib/confirm.js'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
 import FeedbackSheet from './FeedbackSheet.vue'
 import IconGear from './icons/IconGear.vue'
 import IconDocument from './icons/IconDocument.vue'
+import IconTrash from './icons/IconTrash.vue'
 
 const emit = defineEmits(['open-text'])
 
@@ -40,6 +42,7 @@ function bookMeta(book) {
   if (book.status === 'processing') return 'Обрабатывается…'
   if (book.status === 'failed') return 'Не удалось обработать текст'
   if (!book.total_chunks) return 'Нет порций'
+  if (!book.delivery_active && book.read_chunks < book.total_chunks) return 'На паузе'
   return `${book.read_chunks}/${book.total_chunks} порций прочитано`
 }
 
@@ -70,6 +73,19 @@ function openAddSheet() {
 function openFeedback() {
   appSettingsOpen.value = false
   feedbackOpen.value = true
+}
+
+async function removeBook(book) {
+  const ok = await confirmDialog(`Удалить книгу "${book.title}"? Это нельзя отменить.`)
+  if (!ok) return
+
+  try {
+    const { telegramId } = getTelegramUser()
+    await deleteBook(book.id, telegramId)
+    await load()
+  } catch (err) {
+    error.value = err.message
+  }
 }
 
 onMounted(load)
@@ -128,6 +144,13 @@ onMounted(load)
           <div class="text-item-progress">
             <div class="progress-bar"><span :style="{ width: bookProgress(book) + '%' }" /></div>
           </div>
+          <button
+            class="delete-btn"
+            aria-label="Удалить"
+            @click.stop="removeBook(book)"
+          >
+            <IconTrash />
+          </button>
         </li>
       </ul>
     </template>
@@ -279,5 +302,17 @@ onMounted(load)
   height: 100%;
   background: var(--button);
   border-radius: 2px;
+}
+
+.delete-btn {
+  border: none;
+  background: none;
+  color: var(--hint);
+  flex-shrink: 0;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 </style>
