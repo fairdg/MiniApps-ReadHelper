@@ -3,7 +3,7 @@ import { createBook, markBookReady, markBookFailed } from '../../lib/repositorie
 import { saveChunks } from '../../lib/repositories/chunks.js'
 import { createDelivery, intervalMinutesFromPerDay } from '../../lib/repositories/deliveries.js'
 import { chunkBook } from '../../lib/chunking.js'
-import { stripImages } from '../../lib/textClean.js'
+import { stripImages, assertReadableText } from '../../lib/textClean.js'
 import { extractArticle } from '../../lib/articleExtractor.js'
 
 export default async function handler(req, res) {
@@ -36,6 +36,13 @@ export default async function handler(req, res) {
 
   if (!sourceTitle || !sourceText) {
     res.status(400).json({ error: 'Не удалось определить название или текст' })
+    return
+  }
+
+  try {
+    assertReadableText(sourceText)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
     return
   }
 
