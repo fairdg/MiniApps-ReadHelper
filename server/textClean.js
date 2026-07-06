@@ -47,7 +47,7 @@ function reflowWrappedLines(text) {
 // хочется получать порциями. Такая страница почти всегда идёт единым блоком и
 // надёжно опознаётся по библиотечным индексам УДК/ББК или ISBN — до конца
 // этого блока (включительно) просто отрезаем всё как обложку/выходные данные.
-const IMPRINT_MARKER_RE = /\b(УДК|ББК|ISBN)\b/i
+const IMPRINT_MARKER_RE = /\b(УДК|ББК|ISBN)\b|©|все права защищены|all rights reserved/i
 
 function stripFrontMatter(text) {
   const blocks = text.split(/\n{2,}/)
@@ -64,24 +64,35 @@ function stripFrontMatter(text) {
     .trim()
 }
 
-// Оглавление — заголовок раздела и номер страницы, соединённые "точками-
-// лидерами" (". . . . . 128"). В обычной прозе такой узор не встречается,
-// поэтому даже пара совпадений в абзаце — надёжный признак, что это не текст
-// книги, а список разделов, который дробить и рассылать незачем. Оглавление
-// обычно идёт одним сплошным блоком без пустых строк внутри — если он и
-// содержит побочно название главы, это не начало главы, а строка списка, так
-// что вырезаем блок целиком.
+// Оглавление встречается в двух формах: с "точками-лидерами" между
+// названием и номером страницы (". . . . . 128") — узор, которого не бывает
+// в обычной прозе — или просто как список строк, где почти каждая кончается
+// номером страницы (табы/пробелы вместо точек). Оба узора ловим по одному
+// абзацу (оглавление обычно идёт сплошным блоком без пустых строк внутри), а
+// заодно вырезаем сам заголовок "Оглавление"/"Содержание", даже если после
+// него список отформатирован не настолько явно.
 const DOT_LEADER_RE = /(?:\.\s?){4,}/g
+const TOC_HEADING_RE = /^(оглавление|содержание|table of contents|contents)$/i
+const ENDS_WITH_PAGE_NUMBER_RE = /\d{1,4}\s*$/
 
 function looksLikeTableOfContents(block) {
-  const matches = block.match(DOT_LEADER_RE)
-  return Boolean(matches) && matches.length >= 2
+  const dotLeaders = block.match(DOT_LEADER_RE)
+  if (dotLeaders && dotLeaders.length >= 2) return true
+
+  const lines = block
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+  if (lines.length < 3) return false
+
+  const endingInNumber = lines.filter((line) => ENDS_WITH_PAGE_NUMBER_RE.test(line)).length
+  return endingInNumber / lines.length >= 0.6
 }
 
 function stripTableOfContents(text) {
   return text
     .split(/\n{2,}/)
-    .filter((block) => !looksLikeTableOfContents(block))
+    .filter((block) => !TOC_HEADING_RE.test(block.trim()) && !looksLikeTableOfContents(block))
     .join('\n\n')
 }
 
