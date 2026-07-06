@@ -3,9 +3,15 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   fontSize: { type: Number, required: true },
   theme: { type: String, required: true },
+  notificationsPerDay: { type: Number, required: true },
 })
 
-const emit = defineEmits(['close', 'update:fontSize', 'update:theme'])
+const emit = defineEmits([
+  'close',
+  'update:fontSize',
+  'update:theme',
+  'update:notificationsPerDay',
+])
 
 const themes = [
   { value: 'auto', label: 'Авто' },
@@ -16,6 +22,11 @@ const themes = [
 function changeFont(delta) {
   const next = Math.min(28, Math.max(14, props.fontSize + delta))
   emit('update:fontSize', next)
+}
+
+function changeFrequency(delta) {
+  const next = Math.min(8, Math.max(1, props.notificationsPerDay + delta))
+  emit('update:notificationsPerDay', next)
 }
 </script>
 
@@ -46,6 +57,15 @@ function changeFont(delta) {
         >
           {{ t.label }}
         </button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span>Уведомлений в день</span>
+      <div class="stepper">
+        <button @click="changeFrequency(-1)">-</button>
+        <span>{{ notificationsPerDay }}</span>
+        <button @click="changeFrequency(1)">+</button>
       </div>
     </div>
   </div>

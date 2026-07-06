@@ -6,11 +6,11 @@ async function parseOrThrow(res) {
   return res.json()
 }
 
-export async function addBook({ telegramId, username, title, text }) {
+export async function addBook({ telegramId, username, title, text, notificationsPerDay }) {
   const res = await fetch('/api/books/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, username, title, text }),
+    body: JSON.stringify({ telegramId, username, title, text, notificationsPerDay }),
   })
   return parseOrThrow(res)
 }
@@ -22,5 +22,14 @@ export async function listBooks(telegramId) {
 
 export async function getBookChunks(bookId, telegramId) {
   const res = await fetch(`/api/books/${bookId}/chunks?telegramId=${telegramId}`)
+  return parseOrThrow(res)
+}
+
+export async function updateDeliveryFrequency(bookId, telegramId, notificationsPerDay) {
+  const res = await fetch(`/api/books/${bookId}/delivery`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId, notificationsPerDay }),
+  })
   return parseOrThrow(res)
 }

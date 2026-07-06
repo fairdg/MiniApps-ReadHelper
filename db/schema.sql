@@ -19,8 +19,11 @@ create table if not exists chunks (
   book_id bigint not null references books(id) on delete cascade,
   position int not null,
   content text not null,
+  chapter text,
   unique (book_id, position)
 );
+
+alter table chunks add column if not exists chapter text;
 
 create table if not exists deliveries (
   id bigserial primary key,

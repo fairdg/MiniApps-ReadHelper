@@ -1,7 +1,10 @@
 import { getUserByTelegramId } from '../../../lib/repositories/users.js'
 import { getBookById } from '../../../lib/repositories/books.js'
 import { getChunksForBook } from '../../../lib/repositories/chunks.js'
-import { getDeliveryForBook } from '../../../lib/repositories/deliveries.js'
+import {
+  getDeliveryForBook,
+  perDayFromIntervalMinutes,
+} from '../../../lib/repositories/deliveries.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -34,5 +37,6 @@ export default async function handler(req, res) {
     book,
     chunks,
     deliveredCount: delivery?.next_chunk_position ?? 0,
+    notificationsPerDay: perDayFromIntervalMinutes(delivery?.interval_minutes),
   })
 }
