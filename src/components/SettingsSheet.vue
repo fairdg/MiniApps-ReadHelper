@@ -19,7 +19,7 @@ function changeFont(delta) {
 }
 
 function changeFrequency(delta) {
-  const next = Math.min(24, Math.max(1, props.notificationsPerDay + delta))
+  const next = Math.min(14, Math.max(1, props.notificationsPerDay + delta))
   emit('update:notificationsPerDay', next)
 }
 </script>

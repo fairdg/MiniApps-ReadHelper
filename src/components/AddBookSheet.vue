@@ -18,7 +18,7 @@ const error = ref('')
 const fileName = ref('')
 
 function changeFrequency(delta) {
-  notificationsPerDay.value = Math.min(24, Math.max(1, notificationsPerDay.value + delta))
+  notificationsPerDay.value = Math.min(14, Math.max(1, notificationsPerDay.value + delta))
 }
 
 function onFileSelected(event) {
