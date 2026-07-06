@@ -1,4 +1,6 @@
 <script setup>
+import IconFeedback from './icons/IconFeedback.vue'
+
 defineProps({
   open: { type: Boolean, default: false },
   devMode: { type: Boolean, required: true },
@@ -14,7 +16,10 @@ const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
     <div class="sheet-handle" />
     <h2>Настройки приложения</h2>
 
-    <button class="link-btn" @click="emit('open-feedback')">💬 Оставить отзыв</button>
+    <button class="link-btn" @click="emit('open-feedback')">
+      <IconFeedback />
+      Оставить отзыв
+    </button>
 
     <template v-if="owner">
       <div class="setting-row">
@@ -81,7 +86,9 @@ const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
 }
 
 .link-btn {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
   border: none;
