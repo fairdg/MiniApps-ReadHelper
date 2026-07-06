@@ -5,7 +5,7 @@ defineProps({
   owner: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['close', 'update:devMode'])
+const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
 </script>
 
 <template>
@@ -13,6 +13,8 @@ const emit = defineEmits(['close', 'update:devMode'])
   <div class="sheet" :class="{ open }">
     <div class="sheet-handle" />
     <h2>Настройки приложения</h2>
+
+    <button class="link-btn" @click="emit('open-feedback')">💬 Оставить отзыв</button>
 
     <template v-if="owner">
       <div class="setting-row">
@@ -40,8 +42,6 @@ const emit = defineEmits(['close', 'update:devMode'])
         проверки доставки без ожидания реального интервала.
       </p>
     </template>
-
-    <p v-else class="hint">Здесь скоро появятся настройки приложения.</p>
   </div>
 </template>
 
@@ -78,6 +78,20 @@ const emit = defineEmits(['close', 'update:devMode'])
   margin: 0 0 14px;
   color: var(--hint);
   font-weight: 500;
+}
+
+.link-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--text);
+  font-size: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-bottom: 4px;
 }
 
 .setting-row {

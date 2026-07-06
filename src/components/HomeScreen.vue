@@ -5,6 +5,7 @@ import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
+import FeedbackSheet from './FeedbackSheet.vue'
 import IconGear from './icons/IconGear.vue'
 import IconDocument from './icons/IconDocument.vue'
 
@@ -15,6 +16,7 @@ const loading = ref(true)
 const error = ref('')
 const addSheetOpen = ref(false)
 const appSettingsOpen = ref(false)
+const feedbackOpen = ref(false)
 const devMode = ref(isDevMode())
 const owner = isOwner(getTelegramUser().telegramId)
 const activeTab = ref('inProgress') // 'inProgress' | 'done'
@@ -63,6 +65,11 @@ async function load() {
 function openAddSheet() {
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light')
   addSheetOpen.value = true
+}
+
+function openFeedback() {
+  appSettingsOpen.value = false
+  feedbackOpen.value = true
 }
 
 onMounted(load)
@@ -132,7 +139,9 @@ onMounted(load)
       :owner="owner"
       @close="appSettingsOpen = false"
       @update:dev-mode="changeDevMode"
+      @open-feedback="openFeedback"
     />
+    <FeedbackSheet :open="feedbackOpen" @close="feedbackOpen = false" />
   </section>
 </template>
 

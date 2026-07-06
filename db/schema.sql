@@ -37,5 +37,12 @@ create table if not exists deliveries (
   is_active boolean not null default true
 );
 
+create table if not exists feedback (
+  id bigserial primary key,
+  user_id bigint references users(id) on delete set null,
+  message text not null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_chunks_book on chunks(book_id);
 create index if not exists idx_deliveries_due on deliveries(is_active, next_send_at);

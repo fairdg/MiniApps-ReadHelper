@@ -42,3 +42,12 @@ export async function deliverNow(bookId, telegramId) {
   })
   return parseOrThrow(res)
 }
+
+export async function sendFeedback({ telegramId, username, message }) {
+  const res = await fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId, username, message }),
+  })
+  return parseOrThrow(res)
+}
