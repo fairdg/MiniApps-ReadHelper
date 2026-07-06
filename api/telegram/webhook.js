@@ -1,5 +1,5 @@
-import { upsertUser } from '../../lib/repositories/users.js'
-import { sendMessage } from '../../lib/telegram.js'
+import { upsertUser } from '../../server/repositories/users.js'
+import { sendMessage } from '../../server/telegram.js'
 
 function openAppKeyboard() {
   const webAppUrl = process.env.WEBAPP_URL

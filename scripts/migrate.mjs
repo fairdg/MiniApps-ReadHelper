@@ -9,7 +9,7 @@ if (!databaseUrl || databaseUrl.includes('REPLACE_WITH')) {
   process.exit(1)
 }
 
-const schemaPath = fileURLToPath(new URL('../db/schema.sql', import.meta.url))
+const schemaPath = fileURLToPath(new URL('../server/db/schema.sql', import.meta.url))
 const schema = readFileSync(schemaPath, 'utf8')
 
 // Neon HTTP-драйвер выполняет один стейтмент за раз, поэтому schema.sql

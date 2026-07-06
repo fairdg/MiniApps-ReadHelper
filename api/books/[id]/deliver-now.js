@@ -1,7 +1,7 @@
-import { getUserByTelegramId } from '../../../lib/repositories/users.js'
-import { getBookById } from '../../../lib/repositories/books.js'
-import { getDeliveryForBook } from '../../../lib/repositories/deliveries.js'
-import { deliverNextChunk } from '../../../lib/delivery.js'
+import { getUserByTelegramId } from '../../../server/repositories/users.js'
+import { getBookById } from '../../../server/repositories/books.js'
+import { getDeliveryForBook } from '../../../server/repositories/deliveries.js'
+import { deliverNextChunk } from '../../../server/delivery.js'
 
 // Ручной триггер для режима разработчика: отправляет следующую порцию
 // прямо сейчас, в обход расписания — чтобы не ждать реальный интервал

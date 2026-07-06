@@ -1,5 +1,5 @@
-import { getDueDeliveries } from '../../lib/repositories/deliveries.js'
-import { deliverNextChunk } from '../../lib/delivery.js'
+import { getDueDeliveries } from '../../server/repositories/deliveries.js'
+import { deliverNextChunk } from '../../server/delivery.js'
 
 export default async function handler(req, res) {
   const expectedSecret = process.env.CRON_SECRET

@@ -1,5 +1,5 @@
-import { getUserByTelegramId } from '../../lib/repositories/users.js'
-import { getBookById, deleteBook } from '../../lib/repositories/books.js'
+import { getUserByTelegramId } from '../../server/repositories/users.js'
+import { getBookById, deleteBook } from '../../server/repositories/books.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE') {

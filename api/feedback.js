@@ -1,6 +1,6 @@
-import { upsertUser } from '../lib/repositories/users.js'
-import { createFeedback } from '../lib/repositories/feedback.js'
-import { sendMessage } from '../lib/telegram.js'
+import { upsertUser } from '../server/repositories/users.js'
+import { createFeedback } from '../server/repositories/feedback.js'
+import { sendMessage } from '../server/telegram.js'
 
 // #отзыв — хэштег в начале сообщения, чтобы владелец мог найти все отзывы
 // поиском прямо внутри чата с ботом (Telegram делает хэштеги кликабельными).

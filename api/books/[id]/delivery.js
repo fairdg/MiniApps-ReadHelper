@@ -1,11 +1,11 @@
-import { getUserByTelegramId } from '../../../lib/repositories/users.js'
-import { getBookById } from '../../../lib/repositories/books.js'
+import { getUserByTelegramId } from '../../../server/repositories/users.js'
+import { getBookById } from '../../../server/repositories/books.js'
 import {
   updateDeliveryInterval,
   setDeliveryActive,
   intervalMinutesFromPerDay,
   perDayFromIntervalMinutes,
-} from '../../../lib/repositories/deliveries.js'
+} from '../../../server/repositories/deliveries.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'PATCH') {

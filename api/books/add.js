@@ -1,10 +1,10 @@
-import { upsertUser } from '../../lib/repositories/users.js'
-import { createBook, markBookReady, markBookFailed } from '../../lib/repositories/books.js'
-import { saveChunks } from '../../lib/repositories/chunks.js'
-import { createDelivery, intervalMinutesFromPerDay } from '../../lib/repositories/deliveries.js'
-import { chunkBook } from '../../lib/chunking.js'
-import { stripImages, assertReadableText } from '../../lib/textClean.js'
-import { extractArticle } from '../../lib/articleExtractor.js'
+import { upsertUser } from '../../server/repositories/users.js'
+import { createBook, markBookReady, markBookFailed } from '../../server/repositories/books.js'
+import { saveChunks } from '../../server/repositories/chunks.js'
+import { createDelivery, intervalMinutesFromPerDay } from '../../server/repositories/deliveries.js'
+import { chunkBook } from '../../server/chunking.js'
+import { stripImages, assertReadableText } from '../../server/textClean.js'
+import { extractArticle } from '../../server/articleExtractor.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {

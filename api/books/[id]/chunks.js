@@ -1,10 +1,10 @@
-import { getUserByTelegramId } from '../../../lib/repositories/users.js'
-import { getBookById } from '../../../lib/repositories/books.js'
-import { getChunksForBook } from '../../../lib/repositories/chunks.js'
+import { getUserByTelegramId } from '../../../server/repositories/users.js'
+import { getBookById } from '../../../server/repositories/books.js'
+import { getChunksForBook } from '../../../server/repositories/chunks.js'
 import {
   getDeliveryForBook,
   perDayFromIntervalMinutes,
-} from '../../../lib/repositories/deliveries.js'
+} from '../../../server/repositories/deliveries.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
