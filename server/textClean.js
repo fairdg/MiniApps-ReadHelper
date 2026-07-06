@@ -64,13 +64,35 @@ function stripFrontMatter(text) {
     .trim()
 }
 
+// Оглавление — заголовок раздела и номер страницы, соединённые "точками-
+// лидерами" (". . . . . 128"). В обычной прозе такой узор не встречается,
+// поэтому даже пара совпадений в абзаце — надёжный признак, что это не текст
+// книги, а список разделов, который дробить и рассылать незачем. Оглавление
+// обычно идёт одним сплошным блоком без пустых строк внутри — если он и
+// содержит побочно название главы, это не начало главы, а строка списка, так
+// что вырезаем блок целиком.
+const DOT_LEADER_RE = /(?:\.\s?){4,}/g
+
+function looksLikeTableOfContents(block) {
+  const matches = block.match(DOT_LEADER_RE)
+  return Boolean(matches) && matches.length >= 2
+}
+
+function stripTableOfContents(text) {
+  return text
+    .split(/\n{2,}/)
+    .filter((block) => !looksLikeTableOfContents(block))
+    .join('\n\n')
+}
+
 // Полная нормализация текста перед сохранением/дроблением: приводит переносы
-// строк, вырезает картинки, убирает титульный лист/выходные данные (если
-// опознаны) и переносы по ширине страницы.
+// строк, вырезает картинки, убирает титульный лист/выходные данные и
+// оглавление (если опознаны), затем переносы по ширине страницы.
 export function normalizeBookText(text) {
   const withoutImages = stripImages(text)
   const withoutFrontMatter = stripFrontMatter(withoutImages)
-  return reflowWrappedLines(withoutFrontMatter)
+  const withoutToc = stripTableOfContents(withoutFrontMatter)
+  return reflowWrappedLines(withoutToc)
 }
 
 const NULL_BYTE = String.fromCharCode(0)

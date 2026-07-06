@@ -255,8 +255,11 @@ onMounted(load)
 }
 
 .dev-toolbar {
+  position: sticky;
+  bottom: 0;
   padding: 12px 16px 20px;
   border-top: 1px dashed var(--separator);
+  background: var(--bg);
 }
 
 .dev-btn {
