@@ -6,6 +6,7 @@ import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
 import IconGear from './icons/IconGear.vue'
+import IconDocument from './icons/IconDocument.vue'
 
 const emit = defineEmits(['open-text'])
 
@@ -70,7 +71,22 @@ onMounted(load)
 <template>
   <section class="screen">
     <header class="topbar">
-      <h1>ReadHelper</h1>
+      <div class="tabs">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'inProgress' }"
+          @click="activeTab = 'inProgress'"
+        >
+          В процессе ({{ booksInProgress.length }})
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'done' }"
+          @click="activeTab = 'done'"
+        >
+          Завершено ({{ booksDone.length }})
+        </button>
+      </div>
       <div class="header-actions">
         <button class="icon-btn" aria-label="Настройки" @click="appSettingsOpen = true">
           <IconGear />
@@ -86,25 +102,8 @@ onMounted(load)
     </p>
 
     <template v-else>
-      <div class="tabs">
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'inProgress' }"
-          @click="activeTab = 'inProgress'"
-        >
-          В процессе ({{ booksInProgress.length }})
-        </button>
-        <button
-          class="tab-btn"
-          :class="{ active: activeTab === 'done' }"
-          @click="activeTab = 'done'"
-        >
-          Прочитано ({{ booksDone.length }})
-        </button>
-      </div>
-
       <p v-if="!visibleBooks.length" class="state-message">
-        {{ activeTab === 'done' ? 'Пока нет прочитанных книг.' : 'Нет книг в процессе.' }}
+        {{ activeTab === 'done' ? 'Пока нет завершённых книг.' : 'Нет книг в процессе.' }}
       </p>
 
       <ul v-else class="text-list">
@@ -114,7 +113,7 @@ onMounted(load)
           class="text-item"
           @click="emit('open-text', book)"
         >
-          <div class="text-item-icon">📄</div>
+          <div class="text-item-icon"><IconDocument /></div>
           <div class="text-item-body">
             <div class="text-item-title">{{ book.title }}</div>
             <div class="text-item-meta">{{ bookMeta(book) }}</div>
@@ -156,14 +155,6 @@ onMounted(load)
   z-index: 5;
 }
 
-.topbar h1 {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 0;
-  flex: 1;
-  text-align: center;
-}
-
 .header-actions {
   display: flex;
   gap: 8px;
@@ -186,7 +177,6 @@ onMounted(load)
 .tabs {
   display: flex;
   gap: 8px;
-  padding: 4px 16px 12px;
 }
 
 .tab-btn {
@@ -236,9 +226,13 @@ onMounted(load)
 }
 
 .text-item-icon {
-  font-size: 22px;
   width: 36px;
-  text-align: center;
+  height: 36px;
+  flex-shrink: 0;
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .text-item-body {
