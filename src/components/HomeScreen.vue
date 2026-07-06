@@ -52,10 +52,6 @@ onMounted(load)
       <button class="icon-btn" aria-label="Добавить" @click="openAddSheet">+</button>
     </header>
 
-    <div class="search-wrap">
-      <input type="text" placeholder="Поиск по текстам..." class="search-input" />
-    </div>
-
     <p v-if="loading" class="state-message">Загружаю…</p>
     <p v-else-if="error" class="state-message error">{{ error }}</p>
     <p v-else-if="!books.length" class="state-message">
@@ -125,24 +121,6 @@ onMounted(load)
   cursor: pointer;
 }
 
-.search-wrap {
-  padding: 0 16px 12px;
-}
-
-.search-input {
-  width: 100%;
-  border: none;
-  background: var(--secondary-bg);
-  color: var(--text);
-  padding: 10px 14px;
-  border-radius: 12px;
-  font-size: 15px;
-}
-
-.search-input::placeholder {
-  color: var(--hint);
-}
-
 .state-message {
   padding: 24px 16px;
   text-align: center;
@@ -157,7 +135,7 @@ onMounted(load)
 .text-list {
   list-style: none;
   margin: 0;
-  padding: 0 16px;
+  padding: 4px 16px 0;
   display: flex;
   flex-direction: column;
   gap: 10px;

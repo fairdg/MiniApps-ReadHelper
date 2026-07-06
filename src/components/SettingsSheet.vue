@@ -34,7 +34,7 @@ function changeFrequency(delta) {
   <div class="sheet-backdrop" :class="{ open: props.open }" @click="emit('close')" />
   <div class="sheet" :class="{ open: props.open }">
     <div class="sheet-handle" />
-    <h2>Оформление</h2>
+    <h2>Настройки</h2>
 
     <div class="setting-row">
       <span>Размер шрифта</span>

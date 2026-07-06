@@ -73,7 +73,7 @@ onMounted(load)
     <header class="topbar">
       <button class="icon-btn" aria-label="Назад" @click="emit('back')">←</button>
       <h1 class="reader-title">{{ book.title }}</h1>
-      <button class="icon-btn" aria-label="Настройки" @click="settingsOpen = true">Aa</button>
+      <button class="icon-btn" aria-label="Настройки" @click="settingsOpen = true">⚙</button>
     </header>
 
     <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
