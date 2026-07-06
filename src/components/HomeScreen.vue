@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { listBooks } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
@@ -15,6 +15,17 @@ const addSheetOpen = ref(false)
 const appSettingsOpen = ref(false)
 const devMode = ref(isDevMode())
 const owner = isOwner(getTelegramUser().telegramId)
+const activeTab = ref('inProgress') // 'inProgress' | 'done'
+
+function isDone(book) {
+  return book.total_chunks > 0 && book.read_chunks >= book.total_chunks
+}
+
+const booksInProgress = computed(() => books.value.filter((b) => !isDone(b)))
+const booksDone = computed(() => books.value.filter(isDone))
+const visibleBooks = computed(() =>
+  activeTab.value === 'done' ? booksDone.value : booksInProgress.value,
+)
 
 function changeDevMode(value) {
   devMode.value = value
@@ -71,23 +82,46 @@ onMounted(load)
       Пока нет ни одной книги — нажми "+", чтобы добавить первую.
     </p>
 
-    <ul v-else class="text-list">
-      <li
-        v-for="book in books"
-        :key="book.id"
-        class="text-item"
-        @click="emit('open-text', book)"
-      >
-        <div class="text-item-icon">📄</div>
-        <div class="text-item-body">
-          <div class="text-item-title">{{ book.title }}</div>
-          <div class="text-item-meta">{{ bookMeta(book) }}</div>
-        </div>
-        <div class="text-item-progress">
-          <div class="progress-bar"><span :style="{ width: bookProgress(book) + '%' }" /></div>
-        </div>
-      </li>
-    </ul>
+    <template v-else>
+      <div class="tabs">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'inProgress' }"
+          @click="activeTab = 'inProgress'"
+        >
+          В процессе ({{ booksInProgress.length }})
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'done' }"
+          @click="activeTab = 'done'"
+        >
+          Прочитано ({{ booksDone.length }})
+        </button>
+      </div>
+
+      <p v-if="!visibleBooks.length" class="state-message">
+        {{ activeTab === 'done' ? 'Пока нет прочитанных книг.' : 'Нет книг в процессе.' }}
+      </p>
+
+      <ul v-else class="text-list">
+        <li
+          v-for="book in visibleBooks"
+          :key="book.id"
+          class="text-item"
+          @click="emit('open-text', book)"
+        >
+          <div class="text-item-icon">📄</div>
+          <div class="text-item-body">
+            <div class="text-item-title">{{ book.title }}</div>
+            <div class="text-item-meta">{{ bookMeta(book) }}</div>
+          </div>
+          <div class="text-item-progress">
+            <div class="progress-bar"><span :style="{ width: bookProgress(book) + '%' }" /></div>
+          </div>
+        </li>
+      </ul>
+    </template>
 
     <AddBookSheet :open="addSheetOpen" @close="addSheetOpen = false" @added="load" />
     <AppSettingsSheet
@@ -144,6 +178,28 @@ onMounted(load)
   align-items: center;
   justify-content: center;
   cursor: pointer;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px 16px 12px;
+}
+
+.tab-btn {
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--hint);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  background: var(--button);
+  color: var(--button-text);
 }
 
 .state-message {
