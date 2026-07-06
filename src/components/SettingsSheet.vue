@@ -2,7 +2,6 @@
 const props = defineProps({
   open: { type: Boolean, default: false },
   fontSize: { type: Number, required: true },
-  theme: { type: String, required: true },
   notificationsPerDay: { type: Number, required: true },
   deliveryActive: { type: Boolean, required: true },
 })
@@ -10,16 +9,9 @@ const props = defineProps({
 const emit = defineEmits([
   'close',
   'update:fontSize',
-  'update:theme',
   'update:notificationsPerDay',
   'update:deliveryActive',
 ])
-
-const themes = [
-  { value: 'auto', label: 'Авто' },
-  { value: 'light', label: 'Светлая' },
-  { value: 'dark', label: 'Тёмная' },
-]
 
 function changeFont(delta) {
   const next = Math.min(28, Math.max(14, props.fontSize + delta))
@@ -27,7 +19,7 @@ function changeFont(delta) {
 }
 
 function changeFrequency(delta) {
-  const next = Math.min(8, Math.max(1, props.notificationsPerDay + delta))
+  const next = Math.min(24, Math.max(1, props.notificationsPerDay + delta))
   emit('update:notificationsPerDay', next)
 }
 </script>
@@ -44,21 +36,6 @@ function changeFrequency(delta) {
         <button @click="changeFont(-2)">A-</button>
         <span>{{ fontSize }}</span>
         <button @click="changeFont(2)">A+</button>
-      </div>
-    </div>
-
-    <div class="setting-row">
-      <span>Тема</span>
-      <div class="segmented">
-        <button
-          v-for="t in themes"
-          :key="t.value"
-          class="seg-btn"
-          :class="{ active: theme === t.value }"
-          @click="emit('update:theme', t.value)"
-        >
-          {{ t.label }}
-        </button>
       </div>
     </div>
 

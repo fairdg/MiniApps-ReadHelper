@@ -18,7 +18,6 @@ const devMode = isDevMode() && isOwner(getTelegramUser().telegramId)
 
 const settingsOpen = ref(false)
 const fontSize = ref(18)
-const theme = ref('auto')
 const notificationsPerDay = ref(4)
 const deliveryActive = ref(true)
 
@@ -152,12 +151,10 @@ onMounted(load)
     <SettingsSheet
       :open="settingsOpen"
       :font-size="fontSize"
-      :theme="theme"
       :notifications-per-day="notificationsPerDay"
       :delivery-active="deliveryActive"
       @close="settingsOpen = false"
       @update:font-size="fontSize = $event"
-      @update:theme="theme = $event"
       @update:notifications-per-day="changeNotificationsPerDay"
       @update:delivery-active="changeDeliveryActive"
     />
