@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "set-webhook": "node --env-file=.env.local scripts/set-webhook.mjs",
+    "set-commands": "node --env-file=.env.local scripts/set-commands.mjs",
     "migrate": "node --env-file=.env.local scripts/migrate.mjs"
   },
   "dependencies": {
