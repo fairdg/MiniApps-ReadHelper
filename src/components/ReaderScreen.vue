@@ -10,13 +10,10 @@ const props = defineProps({
 
 const emit = defineEmits(['back'])
 
-const tg = window.Telegram?.WebApp
-
 const settingsOpen = ref(false)
 const fontSize = ref(18)
 const theme = ref('auto')
 const notificationsPerDay = ref(4)
-const playing = ref(false)
 
 const loading = ref(true)
 const error = ref('')
@@ -68,11 +65,6 @@ async function changeNotificationsPerDay(value) {
   }
 }
 
-function togglePlay() {
-  playing.value = !playing.value
-  tg?.HapticFeedback?.impactOccurred('medium')
-}
-
 onMounted(load)
 </script>
 
@@ -100,12 +92,6 @@ onMounted(load)
           расписанию.
         </p>
       </template>
-    </div>
-
-    <div class="reader-toolbar">
-      <button class="tool-btn" @click="togglePlay">
-        {{ playing ? '⏸ Пауза' : '▶ Слушать' }}
-      </button>
     </div>
 
     <SettingsSheet
@@ -196,25 +182,5 @@ onMounted(load)
 
 .state-message.error {
   color: #e5484d;
-}
-
-.reader-toolbar {
-  padding: 12px 16px 20px;
-  border-top: 1px solid var(--separator);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.tool-btn {
-  align-self: flex-start;
-  border: none;
-  background: var(--button);
-  color: var(--button-text);
-  padding: 10px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
 }
 </style>
