@@ -1,13 +1,18 @@
 import { getDb } from '../db.js'
 
-export async function createBook({ userId, title, sourceText }) {
+export async function createBook({ userId, title, sourceText, targetWords = 120 }) {
   const sql = getDb()
   const [book] = await sql`
-    insert into books (user_id, title, source_text, status)
-    values (${userId}, ${title}, ${sourceText}, 'processing')
+    insert into books (user_id, title, source_text, status, target_words)
+    values (${userId}, ${title}, ${sourceText}, 'processing', ${targetWords})
     returning *
   `
   return book
+}
+
+export async function updateTargetWords(bookId, targetWords) {
+  const sql = getDb()
+  await sql`update books set target_words = ${targetWords} where id = ${bookId}`
 }
 
 export async function markBookReady(bookId) {

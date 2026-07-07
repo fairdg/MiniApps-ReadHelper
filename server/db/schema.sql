@@ -14,8 +14,11 @@ create table if not exists books (
   title text not null,
   source_text text not null,
   status text not null default 'processing', -- processing | ready | failed
+  target_words int not null default 120, -- ориентир для дробления на порции
   created_at timestamptz not null default now()
 );
+
+alter table books add column if not exists target_words int not null default 120;
 
 create table if not exists chunks (
   id bigserial primary key,

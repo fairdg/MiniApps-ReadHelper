@@ -2,7 +2,7 @@ import { upsertUser } from '../../server/repositories/users.js'
 import { createBook, markBookReady, markBookFailed } from '../../server/repositories/books.js'
 import { saveChunks } from '../../server/repositories/chunks.js'
 import { createDelivery, intervalMinutesFromPerDay } from '../../server/repositories/deliveries.js'
-import { chunkBook } from '../../server/chunking.js'
+import { chunkBook, clampTargetWords } from '../../server/chunking.js'
 import { normalizeBookText, assertReadableText } from '../../server/textClean.js'
 import { extractArticle } from '../../server/articleExtractor.js'
 
@@ -12,7 +12,8 @@ export default async function handler(req, res) {
     return
   }
 
-  const { telegramId, username, title, text, url, notificationsPerDay, timezone } = req.body ?? {}
+  const { telegramId, username, title, text, url, notificationsPerDay, timezone, targetWords } =
+    req.body ?? {}
 
   if (!telegramId || (!text && !url)) {
     res.status(400).json({ error: 'telegramId и (text или url) обязательны' })
@@ -48,11 +49,18 @@ export default async function handler(req, res) {
 
   const cleanText = normalizeBookText(sourceText)
 
+  const resolvedTargetWords = clampTargetWords(targetWords)
+
   const user = await upsertUser({ telegramId, username, timezone })
-  const book = await createBook({ userId: user.id, title: sourceTitle, sourceText: cleanText })
+  const book = await createBook({
+    userId: user.id,
+    title: sourceTitle,
+    sourceText: cleanText,
+    targetWords: resolvedTargetWords,
+  })
 
   try {
-    const chunks = await chunkBook(cleanText)
+    const chunks = await chunkBook(cleanText, { targetWords: resolvedTargetWords })
     await saveChunks(book.id, chunks)
     await markBookReady(book.id)
     const delivery = await createDelivery(book.id, intervalMinutesFromPerDay(notificationsPerDay))

@@ -14,6 +14,13 @@ export async function saveChunks(bookId, chunks) {
   }
 }
 
+// Используется при пересборке порций (смена размера порции для уже
+// добавленной книги) — старые чанки больше не соответствуют новому targetWords.
+export async function deleteChunksForBook(bookId) {
+  const sql = getDb()
+  await sql`delete from chunks where book_id = ${bookId}`
+}
+
 export async function getChunk(bookId, position) {
   const sql = getDb()
   const [chunk] = await sql`

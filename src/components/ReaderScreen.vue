@@ -1,9 +1,16 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import SettingsSheet from './SettingsSheet.vue'
-import { getBookChunks, updateDeliveryFrequency, updateDeliveryActive, deliverNow } from '../lib/api.js'
+import {
+  getBookChunks,
+  updateDeliveryFrequency,
+  updateDeliveryActive,
+  updateChunkSize,
+  deliverNow,
+} from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, isOwner } from '../lib/devMode.js'
+import { confirmDialog } from '../lib/confirm.js'
 import IconGear from './icons/IconGear.vue'
 
 const props = defineProps({
@@ -20,6 +27,7 @@ const settingsOpen = ref(false)
 const fontSize = ref(18)
 const notificationsPerDay = ref(4)
 const deliveryActive = ref(true)
+const targetWords = ref(120)
 
 const loading = ref(true)
 const error = ref('')
@@ -31,7 +39,9 @@ const sendNowError = ref('')
 
 // Группируем доставленные порции по главам, чтобы в UI они шли отдельными
 // блоками, а не сплошным текстом. chunk.chapter === null — глав не нашли,
-// тогда просто рендерим плоским списком (заголовков не будет).
+// тогда весь текст — одна секция без заголовка главы.
+// Последняя секция — "в процессе", пока есть недоставленные порции этой
+// книги; все предыдущие уже точно доставлены целиком — "прочитано".
 const groupedSections = computed(() => {
   const delivered = chunks.value.slice(0, deliveredCount.value)
   const sections = []
@@ -45,8 +55,25 @@ const groupedSections = computed(() => {
     }
   }
 
-  return sections
+  return sections.map((section, i) => ({
+    ...section,
+    status:
+      i === sections.length - 1 && deliveredCount.value < chunks.value.length
+        ? 'in-progress'
+        : 'read',
+  }))
 })
+
+// Свёрнуто по умолчанию — кроме самой последней (текущей) секции: старые
+// главы не должны загромождать экран, а то, что сейчас читается, видно сразу.
+const expandedSections = ref(new Set())
+
+function toggleSection(i) {
+  const next = new Set(expandedSections.value)
+  if (next.has(i)) next.delete(i)
+  else next.add(i)
+  expandedSections.value = next
+}
 
 async function load() {
   loading.value = true
@@ -58,6 +85,8 @@ async function load() {
     deliveredCount.value = data.deliveredCount
     notificationsPerDay.value = data.notificationsPerDay
     deliveryActive.value = data.deliveryActive
+    targetWords.value = data.book.target_words
+    expandedSections.value = new Set([groupedSections.value.length - 1])
   } catch (err) {
     error.value = err.message
   } finally {
@@ -82,6 +111,23 @@ async function changeDeliveryActive(value) {
     await updateDeliveryActive(props.book.id, telegramId, value)
   } catch (err) {
     console.error('Не удалось изменить статус доставки:', err)
+  }
+}
+
+// Смена размера порции пересобирает все чанки заново — прогресс чтения
+// сбрасывается на начало, поэтому спрашиваем подтверждение перед вызовом.
+async function changeTargetWords(value) {
+  const ok = await confirmDialog(
+    'Изменить размер порции? Все порции будут пересобраны заново, прогресс чтения этой книги сбросится на начало.',
+  )
+  if (!ok) return
+
+  try {
+    const { telegramId } = getTelegramUser()
+    await updateChunkSize(props.book.id, telegramId, value)
+    await load()
+  } catch (err) {
+    error.value = err.message
   }
 }
 
@@ -124,11 +170,21 @@ onMounted(load)
       </p>
       <template v-else>
         <div v-for="(section, i) in groupedSections" :key="i" class="chapter-section">
-          <h2 v-if="section.chapter" class="chapter-heading">{{ section.chapter }}</h2>
-          <div v-for="chunk in section.chunks" :key="chunk.position" class="message-block">
-            <div class="message-label">Порция {{ chunk.position + 1 }}</div>
-            <p>{{ chunk.content }}</p>
-          </div>
+          <button class="chapter-toggle" @click="toggleSection(i)">
+            <span class="chapter-toggle-title">
+              {{ section.chapter || `Порции ${section.chunks[0].position + 1}–${section.chunks[section.chunks.length - 1].position + 1}` }}
+            </span>
+            <span class="status-badge" :class="section.status">
+              {{ section.status === 'in-progress' ? 'В процессе' : 'Прочитано' }}
+            </span>
+            <span class="chevron" :class="{ open: expandedSections.has(i) }">⌄</span>
+          </button>
+          <template v-if="expandedSections.has(i)">
+            <div v-for="chunk in section.chunks" :key="chunk.position" class="message-block">
+              <div class="message-label">Порция {{ chunk.position + 1 }}</div>
+              <p>{{ chunk.content }}</p>
+            </div>
+          </template>
         </div>
         <p v-if="deliveredCount < chunks.length" class="state-message">
           Ещё {{ chunks.length - deliveredCount }} порций впереди — следующая придёт в Telegram по
@@ -153,9 +209,11 @@ onMounted(load)
       :font-size="fontSize"
       :notifications-per-day="notificationsPerDay"
       :delivery-active="deliveryActive"
+      :target-words="targetWords"
       @close="settingsOpen = false"
       @update:font-size="fontSize = $event"
       @update:notifications-per-day="changeNotificationsPerDay"
+      @update:target-words="changeTargetWords"
       @update:delivery-active="changeDeliveryActive"
     />
   </section>
@@ -236,13 +294,57 @@ onMounted(load)
   margin-top: 8px;
 }
 
-.chapter-heading {
-  font-size: 15px;
+.chapter-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.chapter-toggle-title {
+  flex: 1;
+  font-size: 13px;
   font-weight: 600;
   color: var(--hint);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  margin: 0 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-badge {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--hint);
+  background: var(--bg);
+}
+
+.status-badge.in-progress {
+  color: var(--button-text);
+  background: var(--button);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--hint);
+  transition: transform 0.2s ease;
+}
+
+.chevron.open {
+  transform: rotate(180deg);
 }
 
 .state-message {

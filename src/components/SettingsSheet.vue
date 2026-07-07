@@ -1,9 +1,12 @@
 <script setup>
+import { ref, watch } from 'vue'
+
 const props = defineProps({
   open: { type: Boolean, default: false },
   fontSize: { type: Number, required: true },
   notificationsPerDay: { type: Number, required: true },
   deliveryActive: { type: Boolean, required: true },
+  targetWords: { type: Number, required: true },
 })
 
 const emit = defineEmits([
@@ -11,6 +14,7 @@ const emit = defineEmits([
   'update:fontSize',
   'update:notificationsPerDay',
   'update:deliveryActive',
+  'update:targetWords',
 ])
 
 function changeFont(delta) {
@@ -21,6 +25,25 @@ function changeFont(delta) {
 function changeFrequency(delta) {
   const next = Math.min(14, Math.max(1, props.notificationsPerDay + delta))
   emit('update:notificationsPerDay', next)
+}
+
+// Смена размера порции пересобирает все чанки и сбрасывает прогресс чтения —
+// в отличие от остальных настроек здесь это не должно применяться на каждый
+// тап степпера, а только по явному подтверждению.
+const pendingTargetWords = ref(props.targetWords)
+watch(
+  () => props.targetWords,
+  (value) => {
+    pendingTargetWords.value = value
+  },
+)
+
+function changeTargetWords(delta) {
+  pendingTargetWords.value = Math.min(300, Math.max(40, pendingTargetWords.value + delta))
+}
+
+function applyTargetWords() {
+  emit('update:targetWords', pendingTargetWords.value)
 }
 </script>
 
@@ -47,6 +70,22 @@ function changeFrequency(delta) {
         <button @click="changeFrequency(1)">+</button>
       </div>
     </div>
+
+    <div class="setting-row">
+      <span>Размер порции — ~{{ pendingTargetWords }} слов</span>
+      <div class="stepper">
+        <button @click="changeTargetWords(-20)">-</button>
+        <span>{{ pendingTargetWords }}</span>
+        <button @click="changeTargetWords(20)">+</button>
+      </div>
+    </div>
+    <button
+      v-if="pendingTargetWords !== targetWords"
+      class="apply-btn"
+      @click="applyTargetWords"
+    >
+      Применить — пересоберёт порции и сбросит прогресс чтения
+    </button>
 
     <div class="setting-row">
       <span>Доставка</span>
@@ -129,6 +168,19 @@ function changeFrequency(delta) {
   font-size: 14px;
   cursor: pointer;
   padding: 2px 4px;
+}
+
+.apply-btn {
+  width: 100%;
+  border: none;
+  background: var(--button);
+  color: var(--button-text);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0 0 10px;
 }
 
 .segmented {

@@ -15,12 +15,17 @@ const title = ref('')
 const text = ref('')
 const url = ref('')
 const notificationsPerDay = ref(4)
+const targetWords = ref(120)
 const submitting = ref(false)
 const error = ref('')
 const fileName = ref('')
 
 function changeFrequency(delta) {
   notificationsPerDay.value = Math.min(14, Math.max(1, notificationsPerDay.value + delta))
+}
+
+function changeTargetWords(delta) {
+  targetWords.value = Math.min(300, Math.max(40, targetWords.value + delta))
 }
 
 function onFileSelected(event) {
@@ -64,12 +69,14 @@ async function submit() {
       url: hasUrl ? url.value.trim() : undefined,
       notificationsPerDay: notificationsPerDay.value,
       timezone,
+      targetWords: targetWords.value,
     })
     title.value = ''
     text.value = ''
     url.value = ''
     fileName.value = ''
     notificationsPerDay.value = 4
+    targetWords.value = 120
     emit('added')
     emit('close')
   } catch (err) {
@@ -109,6 +116,15 @@ async function submit() {
         <button type="button" @click="changeFrequency(-1)">-</button>
         <span>{{ notificationsPerDay }}</span>
         <button type="button" @click="changeFrequency(1)">+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <span>Размер порции — ~{{ targetWords }} слов</span>
+      <div class="stepper">
+        <button type="button" @click="changeTargetWords(-20)">-</button>
+        <span>{{ targetWords }}</span>
+        <button type="button" @click="changeTargetWords(20)">+</button>
       </div>
     </div>
 

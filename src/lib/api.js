@@ -14,11 +14,21 @@ export async function addBook({
   url,
   notificationsPerDay,
   timezone,
+  targetWords,
 }) {
   const res = await fetch('/api/books/add', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, username, title, text, url, notificationsPerDay, timezone }),
+    body: JSON.stringify({
+      telegramId,
+      username,
+      title,
+      text,
+      url,
+      notificationsPerDay,
+      timezone,
+      targetWords,
+    }),
   })
   return parseOrThrow(res)
 }
@@ -54,6 +64,15 @@ export async function updateDeliveryActive(bookId, telegramId, isActive) {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ telegramId, isActive }),
+  })
+  return parseOrThrow(res)
+}
+
+export async function updateChunkSize(bookId, telegramId, targetWords) {
+  const res = await fetch(`/api/books/${bookId}/chunk-size`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId, targetWords }),
   })
   return parseOrThrow(res)
 }

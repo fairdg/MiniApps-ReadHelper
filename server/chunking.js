@@ -7,6 +7,16 @@ const TARGET_WORDS = 120
 // т.к. ИИ иногда игнорирует просьбу дробить и возвращает кусок целиком.
 const TELEGRAM_SAFE_CHARS = 3500
 
+// Границы, в которых пользователь может регулировать размер порции.
+export const MIN_TARGET_WORDS = 40
+export const MAX_TARGET_WORDS = 300
+
+export function clampTargetWords(value, fallback = TARGET_WORDS) {
+  const num = Math.round(Number(value))
+  if (!Number.isFinite(num)) return fallback
+  return Math.min(MAX_TARGET_WORDS, Math.max(MIN_TARGET_WORDS, num))
+}
+
 function splitByParagraphs(text) {
   return text
     .split(/\n{2,}/)
@@ -137,18 +147,18 @@ function splitByChapters(text) {
   return chapters.length ? chapters : [{ title: null, content: text }]
 }
 
-async function chunkText(text, { useAi }) {
-  if (!useAi) return enforceMaxChars(fallbackChunk(text))
+async function chunkText(text, { useAi, targetWords }) {
+  if (!useAi) return enforceMaxChars(fallbackChunk(text, targetWords))
 
   const blocks = splitIntoBlocks(text)
   const allChunks = []
 
   for (const block of blocks) {
     try {
-      allChunks.push(...(await aiSplit(block, { targetWords: TARGET_WORDS })))
+      allChunks.push(...(await aiSplit(block, { targetWords })))
     } catch (err) {
       console.error('Gemini chunking failed for block, falling back:', err)
-      allChunks.push(...fallbackChunk(block))
+      allChunks.push(...fallbackChunk(block, targetWords))
     }
   }
 
@@ -159,13 +169,15 @@ async function chunkText(text, { useAi }) {
 // они есть), затем внутри каждой главы пробует ИИ (учитывает смысловые
 // границы), при ошибке ИИ на конкретном блоке — откатывается на разбиение по
 // абзацам. Возвращает [{ chapter, content }], chapter === null, если заголовки
-// глав не были обнаружены.
-export async function chunkBook(text, { useAi = true } = {}) {
+// глав не были обнаружены. targetWords — ориентир размера порции, настраиваемый
+// пользователем (по умолчанию TARGET_WORDS); Gemini и фолбэк уже сами решают,
+// что порция может быть короче/длиннее ориентира ради смысловых границ.
+export async function chunkBook(text, { useAi = true, targetWords = TARGET_WORDS } = {}) {
   const chapters = splitByChapters(text)
   const result = []
 
   for (const chapter of chapters) {
-    const pieces = await chunkText(chapter.content, { useAi })
+    const pieces = await chunkText(chapter.content, { useAi, targetWords })
     for (const content of pieces) {
       result.push({ chapter: chapter.title, content })
     }
