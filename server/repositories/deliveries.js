@@ -136,16 +136,12 @@ export async function deactivateDelivery(deliveryId, nextPosition) {
   }
 }
 
-// После пересборки порций (смена размера) старые позиции чанков больше не
-// значат то же самое — прогресс честно сбрасываем на начало, а не подделываем
-// под новое число чанков.
-export async function resetDeliveryProgress(bookId) {
+// После пересборки порций (смена размера) старые позиции чанков не значат то
+// же самое — вызывающий пересчитывает позицию по примерному смещению в тексте
+// и просто переставляет курсор, не трогая расписание/паузу/активность.
+export async function setDeliveryPosition(bookId, position) {
   const sql = getDb()
-  await sql`
-    update deliveries
-    set next_chunk_position = 0, is_active = true, next_send_at = now()
-    where book_id = ${bookId}
-  `
+  await sql`update deliveries set next_chunk_position = ${position} where book_id = ${bookId}`
 }
 
 export async function getDeliveryForBook(bookId) {

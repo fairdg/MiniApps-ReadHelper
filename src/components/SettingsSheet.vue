@@ -79,13 +79,10 @@ function applyTargetWords() {
         <button @click="changeTargetWords(20)">+</button>
       </div>
     </div>
-    <button
-      v-if="pendingTargetWords !== targetWords"
-      class="apply-btn"
-      @click="applyTargetWords"
-    >
-      Применить — пересоберёт порции и сбросит прогресс чтения
-    </button>
+    <template v-if="pendingTargetWords !== targetWords">
+      <button class="apply-btn" @click="applyTargetWords">Применить</button>
+      <p class="apply-hint">Порции пересоберутся заново, текущее место в книге сохранится примерно</p>
+    </template>
 
     <div class="setting-row">
       <span>Доставка</span>
@@ -180,7 +177,14 @@ function applyTargetWords() {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  margin: 0 0 6px;
+}
+
+.apply-hint {
+  color: var(--hint);
+  font-size: 12px;
   margin: 0 0 10px;
+  text-align: center;
 }
 
 .segmented {

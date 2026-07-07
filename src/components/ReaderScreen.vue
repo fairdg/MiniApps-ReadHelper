@@ -40,8 +40,9 @@ const sendNowError = ref('')
 // Группируем доставленные порции по главам, чтобы в UI они шли отдельными
 // блоками, а не сплошным текстом. chunk.chapter === null — глав не нашли,
 // тогда весь текст — одна секция без заголовка главы.
-// Последняя секция — "в процессе", пока есть недоставленные порции этой
-// книги; все предыдущие уже точно доставлены целиком — "прочитано".
+// Секция "в процессе", только если следующая (ещё не доставленная) порция
+// принадлежит той же главе — иначе эта глава уже дочитана целиком, даже если
+// у книги в целом остались недоставленные порции из следующей главы.
 const groupedSections = computed(() => {
   const delivered = chunks.value.slice(0, deliveredCount.value)
   const sections = []
@@ -55,13 +56,13 @@ const groupedSections = computed(() => {
     }
   }
 
-  return sections.map((section, i) => ({
-    ...section,
-    status:
-      i === sections.length - 1 && deliveredCount.value < chunks.value.length
-        ? 'in-progress'
-        : 'read',
-  }))
+  const nextChunk = chunks.value[deliveredCount.value]
+
+  return sections.map((section, i) => {
+    const isLast = i === sections.length - 1
+    const chapterContinues = isLast && nextChunk && nextChunk.chapter === section.chapter
+    return { ...section, status: chapterContinues ? 'in-progress' : 'read' }
+  })
 })
 
 // Свёрнуто по умолчанию — кроме самой последней (текущей) секции: старые
@@ -114,11 +115,12 @@ async function changeDeliveryActive(value) {
   }
 }
 
-// Смена размера порции пересобирает все чанки заново — прогресс чтения
-// сбрасывается на начало, поэтому спрашиваем подтверждение перед вызовом.
+// Смена размера порции пересобирает все чанки заново — границы порций
+// меняются, поэтому спрашиваем подтверждение (бэкенд сам переставляет курсор
+// прогресса на примерно то же место в книге, см. chunk-size.js).
 async function changeTargetWords(value) {
   const ok = await confirmDialog(
-    'Изменить размер порции? Все порции будут пересобраны заново, прогресс чтения этой книги сбросится на начало.',
+    'Изменить размер порции? Все порции будут пересобраны заново — место в книге сохранится примерно, но точные границы порций изменятся.',
   )
   if (!ok) return
 
