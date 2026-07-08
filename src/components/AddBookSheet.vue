@@ -227,19 +227,29 @@ async function submit() {
 .stepper {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 6px;
   background: var(--secondary-bg);
-  padding: 6px 12px;
+  padding: 4px;
   border-radius: 10px;
+}
+
+.stepper span {
+  min-width: 20px;
+  text-align: center;
 }
 
 .stepper button {
   border: none;
-  background: none;
+  background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
-  padding: 2px 4px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .error {

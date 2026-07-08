@@ -22,6 +22,16 @@ body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   -webkit-tap-highlight-color: transparent;
+  /* Без этого быстрый повторный тап (например, по кнопке степпера +/-)
+     распознаётся как двойной тап "зумом" — так ведёт себя WebView в
+     Telegram, а не только Safari. Прокрутке "manipulation" не мешает. */
+  touch-action: manipulation;
+}
+
+button {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 #app {

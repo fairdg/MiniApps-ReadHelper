@@ -283,8 +283,8 @@ onMounted(load)
   border: none;
   background: var(--secondary-bg);
   color: var(--text);
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   font-size: 16px;
   display: flex;

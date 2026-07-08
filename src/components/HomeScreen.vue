@@ -196,8 +196,8 @@ onMounted(load)
   border: none;
   background: var(--secondary-bg);
   color: var(--text);
-  width: 34px;
-  height: 34px;
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   font-size: 16px;
   display: flex;
@@ -309,7 +309,8 @@ onMounted(load)
   background: none;
   color: var(--hint);
   flex-shrink: 0;
-  padding: 6px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
