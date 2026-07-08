@@ -47,14 +47,26 @@ function reflowWrappedLines(text) {
 // хочется получать порциями. Такая страница почти всегда идёт единым блоком и
 // надёжно опознаётся по библиотечным индексам УДК/ББК или ISBN — до конца
 // этого блока (включительно) просто отрезаем всё как обложку/выходные данные.
+//
+// Важно: ISBN/© могут законно встретиться где угодно в тексте (список
+// литературы, сноски, ссылка на другую книгу в статье с Wikipedia) — это не
+// значит, что до этого места всё "не текст". Поэтому ищем маркер только среди
+// компактных абзацев (настоящий титульный блок короткий) и только в начале
+// текста (front matter — по определению самое начало, не середина/конец).
 const IMPRINT_MARKER_RE = /\b(УДК|ББК|ISBN)\b|©|все права защищены|all rights reserved/i
+const FRONT_MATTER_SEARCH_CHARS = 6000
+const MAX_FRONT_MATTER_BLOCK_CHARS = 1000
 
 function stripFrontMatter(text) {
   const blocks = text.split(/\n{2,}/)
   let imprintIndex = -1
+  let charsSeen = 0
 
-  for (let i = 0; i < blocks.length; i++) {
-    if (IMPRINT_MARKER_RE.test(blocks[i])) imprintIndex = i
+  for (let i = 0; i < blocks.length && charsSeen <= FRONT_MATTER_SEARCH_CHARS; i++) {
+    if (blocks[i].length <= MAX_FRONT_MATTER_BLOCK_CHARS && IMPRINT_MARKER_RE.test(blocks[i])) {
+      imprintIndex = i
+    }
+    charsSeen += blocks[i].length + 2
   }
 
   if (imprintIndex === -1) return text
@@ -96,10 +108,24 @@ function looksLikeTableOfContents(block) {
   return endingInNumber / lines.length >= 0.6
 }
 
+// То же соображение, что и в stripFrontMatter: список литературы/сносок в
+// середине или конце длинной статьи может случайно выглядеть как оглавление
+// (короткие строки, заканчивающиеся числом — например, годом или страницей
+// цитаты), но оглавление по смыслу бывает только в начале текста — дальше
+// эвристику не применяем, чтобы не съесть реальный текст.
+const TOC_SEARCH_CHARS = 6000
+
 function stripTableOfContents(text) {
-  return text
-    .split(/\n{2,}/)
-    .filter((block) => !TOC_HEADING_RE.test(block.trim()) && !looksLikeTableOfContents(block))
+  const blocks = text.split(/\n{2,}/)
+  let charsSeen = 0
+
+  return blocks
+    .filter((block) => {
+      const withinSearchWindow = charsSeen <= TOC_SEARCH_CHARS
+      charsSeen += block.length + 2
+      if (!withinSearchWindow) return true
+      return !(TOC_HEADING_RE.test(block.trim()) || looksLikeTableOfContents(block))
+    })
     .join('\n\n')
 }
 
