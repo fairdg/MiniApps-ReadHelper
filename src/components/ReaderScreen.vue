@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import SettingsSheet from './SettingsSheet.vue'
 import {
   getBookChunks,
@@ -89,6 +89,44 @@ function togglePortion(position) {
   expandedPortions.value = next
 }
 
+// DOM-узлы порций по их position — нужно, чтобы прокрутить к конкретной
+// порции (последней при открытии экрана, или любой по номеру из формы ниже).
+const portionEls = new Map()
+
+function setPortionEl(position, el) {
+  if (el) portionEls.set(position, el)
+  else portionEls.delete(position)
+}
+
+function scrollToPortion(position) {
+  portionEls.get(position)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const jumpInput = ref('')
+const jumpError = ref('')
+
+// Раскрывает главу и саму порцию с нужным номером (они могли быть свёрнуты)
+// и прокручивает к ней — чтобы не листать вручную десятки уже прочитанных
+// порций в поисках конкретной.
+async function jumpToPortion() {
+  jumpError.value = ''
+  const targetPosition = Number(jumpInput.value) - 1
+
+  if (!Number.isInteger(targetPosition) || targetPosition < 0 || targetPosition >= deliveredCount.value) {
+    jumpError.value = `Введи номер от 1 до ${deliveredCount.value}`
+    return
+  }
+
+  const sectionIndex = groupedSections.value.findIndex((section) =>
+    section.chunks.some((chunk) => chunk.position === targetPosition),
+  )
+  if (sectionIndex !== -1) expandedSections.value = new Set(expandedSections.value).add(sectionIndex)
+  expandedPortions.value = new Set(expandedPortions.value).add(targetPosition)
+
+  await nextTick()
+  scrollToPortion(targetPosition)
+}
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -103,6 +141,11 @@ async function load() {
     expandedSections.value = new Set([groupedSections.value.length - 1])
     const lastPosition = chunks.value[deliveredCount.value - 1]?.position
     expandedPortions.value = lastPosition != null ? new Set([lastPosition]) : new Set()
+
+    if (lastPosition != null) {
+      await nextTick()
+      scrollToPortion(lastPosition)
+    }
   } catch (err) {
     error.value = err.message
   } finally {
@@ -189,6 +232,19 @@ onMounted(load)
       <span class="progress-label">Порция {{ deliveredCount }} из {{ chunks.length }}</span>
     </div>
 
+    <form v-if="deliveredCount > 1" class="jump-form" @submit.prevent="jumpToPortion">
+      <input
+        v-model="jumpInput"
+        type="number"
+        min="1"
+        :max="deliveredCount"
+        placeholder="№ порции"
+        class="jump-input"
+      />
+      <button type="submit" class="jump-btn">Перейти</button>
+    </form>
+    <p v-if="jumpError" class="state-message error jump-error">{{ jumpError }}</p>
+
     <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
       <p v-if="loading" class="state-message">Загружаю…</p>
       <p v-else-if="error" class="state-message error">{{ error }}</p>
@@ -207,7 +263,12 @@ onMounted(load)
             <span class="chevron" :class="{ open: expandedSections.has(i) }">⌄</span>
           </button>
           <template v-if="expandedSections.has(i)">
-            <div v-for="chunk in section.chunks" :key="chunk.position" class="message-block">
+            <div
+              v-for="chunk in section.chunks"
+              :key="chunk.position"
+              class="message-block"
+              :ref="(el) => setPortionEl(chunk.position, el)"
+            >
               <button class="message-toggle" @click="togglePortion(chunk.position)">
                 <span class="message-label">Порция {{ chunk.position + 1 }}</span>
                 <span class="chevron" :class="{ open: expandedPortions.has(chunk.position) }">⌄</span>
@@ -319,6 +380,42 @@ onMounted(load)
   flex-shrink: 0;
   font-size: 12px;
   color: var(--hint);
+}
+
+.jump-form {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 10px;
+}
+
+.jump-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--text);
+  /* 16px — минимум, ниже которого iOS Safari сам зумит страницу при фокусе */
+  font-size: 16px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  height: 40px;
+}
+
+.jump-btn {
+  flex-shrink: 0;
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 16px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.jump-error {
+  padding: 0 20px 10px;
 }
 
 .reader-content {
