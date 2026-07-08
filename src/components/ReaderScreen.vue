@@ -6,6 +6,7 @@ import {
   updateDeliveryFrequency,
   updateDeliveryActive,
   updateChunkSize,
+  updateBookTitle,
   deliverNow,
 } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
@@ -153,6 +154,22 @@ async function load() {
   }
 }
 
+// book — проп (нельзя мутировать напрямую), поэтому держим отображаемое
+// название отдельно и обновляем его локально после успешного сохранения.
+const displayTitle = ref(props.book.title)
+
+async function changeTitle(value) {
+  const previous = displayTitle.value
+  displayTitle.value = value
+  try {
+    const { telegramId } = getTelegramUser()
+    await updateBookTitle(props.book.id, telegramId, value)
+  } catch (err) {
+    displayTitle.value = previous
+    error.value = err.message
+  }
+}
+
 async function changeNotificationsPerDay(value) {
   notificationsPerDay.value = value
   try {
@@ -216,7 +233,7 @@ onMounted(load)
   <section class="screen">
     <header class="topbar">
       <button class="icon-btn" aria-label="Назад" @click="emit('back')">←</button>
-      <h1 class="reader-title">{{ book.title }}</h1>
+      <h1 class="reader-title">{{ displayTitle }}</h1>
       <button class="icon-btn" aria-label="Настройки" @click="settingsOpen = true">
         <IconGear />
       </button>
@@ -297,11 +314,13 @@ onMounted(load)
 
     <SettingsSheet
       :open="settingsOpen"
+      :title="displayTitle"
       :font-size="fontSize"
       :notifications-per-day="notificationsPerDay"
       :delivery-active="deliveryActive"
       :target-words="targetWords"
       @close="settingsOpen = false"
+      @update:title="changeTitle"
       @update:font-size="fontSize = $event"
       @update:notifications-per-day="changeNotificationsPerDay"
       @update:target-words="changeTargetWords"

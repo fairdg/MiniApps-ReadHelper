@@ -45,6 +45,15 @@ export async function deleteBook(bookId, telegramId) {
   return parseOrThrow(res)
 }
 
+export async function updateBookTitle(bookId, telegramId, title) {
+  const res = await fetch(`/api/books/${bookId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId, title }),
+  })
+  return parseOrThrow(res)
+}
+
 export async function getBookChunks(bookId, telegramId) {
   const res = await fetch(`/api/books/${bookId}/chunks?telegramId=${telegramId}`)
   return parseOrThrow(res)

@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
+  title: { type: String, required: true },
   fontSize: { type: Number, required: true },
   notificationsPerDay: { type: Number, required: true },
   deliveryActive: { type: Boolean, required: true },
@@ -11,11 +12,31 @@ const props = defineProps({
 
 const emit = defineEmits([
   'close',
+  'update:title',
   'update:fontSize',
   'update:notificationsPerDay',
   'update:deliveryActive',
   'update:targetWords',
 ])
+
+// Название сохраняется по потере фокуса (не на каждую букву) — пустое или
+// не изменившееся значение никуда не отправляем.
+const titleInput = ref(props.title)
+watch(
+  () => props.title,
+  (value) => {
+    titleInput.value = value
+  },
+)
+
+function commitTitle() {
+  const trimmed = titleInput.value.trim()
+  if (!trimmed) {
+    titleInput.value = props.title
+    return
+  }
+  if (trimmed !== props.title) emit('update:title', trimmed)
+}
 
 function changeFont(delta) {
   const next = Math.min(28, Math.max(14, props.fontSize + delta))
@@ -52,6 +73,15 @@ function applyTargetWords() {
   <div class="sheet" :class="{ open: props.open }">
     <div class="sheet-handle" />
     <h2>Настройки</h2>
+
+    <input
+      v-model="titleInput"
+      class="title-input"
+      type="text"
+      placeholder="Название книги"
+      @blur="commitTitle"
+      @keydown.enter="$event.target.blur()"
+    />
 
     <div class="setting-row">
       <span>Размер шрифта</span>
@@ -139,6 +169,21 @@ function applyTargetWords() {
   margin: 0 0 14px;
   color: var(--hint);
   font-weight: 500;
+}
+
+.title-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 12px;
+  /* 16px — минимум, ниже которого iOS Safari сам зумит страницу при фокусе */
+  font-size: 16px;
+  font-family: inherit;
+  font-weight: 600;
+  margin-bottom: 14px;
 }
 
 .setting-row {

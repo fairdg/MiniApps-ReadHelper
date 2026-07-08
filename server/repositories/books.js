@@ -15,6 +15,11 @@ export async function updateTargetWords(bookId, targetWords) {
   await sql`update books set target_words = ${targetWords} where id = ${bookId}`
 }
 
+export async function updateTitle(bookId, title) {
+  const sql = getDb()
+  await sql`update books set title = ${title} where id = ${bookId}`
+}
+
 export async function markBookReady(bookId) {
   const sql = getDb()
   await sql`update books set status = 'ready' where id = ${bookId}`

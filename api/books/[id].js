@@ -1,14 +1,14 @@
 import { getUserByTelegramId } from '../../server/repositories/users.js'
-import { getBookById, deleteBook } from '../../server/repositories/books.js'
+import { getBookById, deleteBook, updateTitle } from '../../server/repositories/books.js'
 
 export default async function handler(req, res) {
-  if (req.method !== 'DELETE') {
+  if (req.method !== 'DELETE' && req.method !== 'PATCH') {
     res.status(405).end()
     return
   }
 
   const bookId = Number(req.query.id)
-  const telegramId = Number(req.query.telegramId)
+  const telegramId = Number(req.method === 'DELETE' ? req.query.telegramId : req.body?.telegramId)
 
   if (!bookId || !telegramId) {
     res.status(400).json({ error: 'id и telegramId обязательны' })
@@ -23,6 +23,18 @@ export default async function handler(req, res) {
     return
   }
 
-  await deleteBook(bookId)
-  res.status(200).json({ deleted: true })
+  if (req.method === 'DELETE') {
+    await deleteBook(bookId)
+    res.status(200).json({ deleted: true })
+    return
+  }
+
+  const title = req.body?.title?.trim()
+  if (!title) {
+    res.status(400).json({ error: 'Название не может быть пустым' })
+    return
+  }
+
+  await updateTitle(bookId, title)
+  res.status(200).json({ title })
 }
