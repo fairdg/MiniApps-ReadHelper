@@ -76,6 +76,19 @@ function toggleSection(i) {
   expandedSections.value = next
 }
 
+// Внутри открытой главы порции тоже сворачиваются — иначе длинная глава всё
+// равно превращается в стену текста. Открыта только самая свежая порция
+// (её и так только что доставили — логично увидеть сразу), остальные — по
+// клику. Ключ — chunk.position, а не индекс: не зависит от группировки.
+const expandedPortions = ref(new Set())
+
+function togglePortion(position) {
+  const next = new Set(expandedPortions.value)
+  if (next.has(position)) next.delete(position)
+  else next.add(position)
+  expandedPortions.value = next
+}
+
 async function load() {
   loading.value = true
   error.value = ''
@@ -88,6 +101,8 @@ async function load() {
     deliveryActive.value = data.deliveryActive
     targetWords.value = data.book.target_words
     expandedSections.value = new Set([groupedSections.value.length - 1])
+    const lastPosition = chunks.value[deliveredCount.value - 1]?.position
+    expandedPortions.value = lastPosition != null ? new Set([lastPosition]) : new Set()
   } catch (err) {
     error.value = err.message
   } finally {
@@ -164,6 +179,16 @@ onMounted(load)
       </button>
     </header>
 
+    <div v-if="chunks.length > 0" class="progress-bar">
+      <div class="progress-track">
+        <div
+          class="progress-fill"
+          :style="{ width: Math.round((deliveredCount / chunks.length) * 100) + '%' }"
+        />
+      </div>
+      <span class="progress-label">Порция {{ deliveredCount }} из {{ chunks.length }}</span>
+    </div>
+
     <div class="reader-content" :style="{ fontSize: fontSize + 'px' }">
       <p v-if="loading" class="state-message">Загружаю…</p>
       <p v-else-if="error" class="state-message error">{{ error }}</p>
@@ -183,8 +208,11 @@ onMounted(load)
           </button>
           <template v-if="expandedSections.has(i)">
             <div v-for="chunk in section.chunks" :key="chunk.position" class="message-block">
-              <div class="message-label">Порция {{ chunk.position + 1 }}</div>
-              <p>{{ chunk.content }}</p>
+              <button class="message-toggle" @click="togglePortion(chunk.position)">
+                <span class="message-label">Порция {{ chunk.position + 1 }}</span>
+                <span class="chevron" :class="{ open: expandedPortions.has(chunk.position) }">⌄</span>
+              </button>
+              <p v-if="expandedPortions.has(chunk.position)">{{ chunk.content }}</p>
             </div>
           </template>
         </div>
@@ -265,6 +293,34 @@ onMounted(load)
   cursor: pointer;
 }
 
+.progress-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 10px;
+}
+
+.progress-track {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--secondary-bg);
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--button);
+  transition: width 0.2s ease;
+}
+
+.progress-label {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--hint);
+}
+
 .reader-content {
   flex: 1;
   padding: 8px 20px 20px;
@@ -280,7 +336,20 @@ onMounted(load)
 }
 
 .message-block p {
-  margin: 0;
+  margin: 8px 0 0;
+}
+
+.message-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
 }
 
 .message-label {
@@ -289,7 +358,6 @@ onMounted(load)
   color: var(--hint);
   text-transform: uppercase;
   letter-spacing: 0.02em;
-  margin-bottom: 6px;
 }
 
 .chapter-section + .chapter-section {
