@@ -8,7 +8,7 @@ import { Readability } from '@mozilla/readability'
 // символов-заменителей, и книга по ссылке не проходила проверку на читаемый
 // текст. Поэтому декодируем сами: сначала смотрим заголовок, если там нет —
 // заглядываем в начало байтов (meta-тег всегда в первых байтах документа).
-function detectCharset(contentTypeHeader, headBytes) {
+export function detectCharset(contentTypeHeader, headBytes) {
   const headerMatch = /charset=([^;]+)/i.exec(contentTypeHeader ?? '')
   if (headerMatch) return headerMatch[1].trim().toLowerCase()
 
@@ -20,7 +20,7 @@ function detectCharset(contentTypeHeader, headBytes) {
   return metaMatch ? metaMatch[1].toLowerCase() : 'utf-8'
 }
 
-function decodeHtml(buffer, contentTypeHeader) {
+export function decodeHtml(buffer, contentTypeHeader) {
   const charset = detectCharset(contentTypeHeader, buffer.slice(0, 2048))
   try {
     return new TextDecoder(charset).decode(buffer)
