@@ -82,7 +82,10 @@ async function removeBook(book) {
   try {
     const { telegramId } = getTelegramUser()
     await deleteBook(book.id, telegramId)
-    await load()
+    // Убираем из уже загруженного списка на месте, а не через повторный
+    // load() — иначе весь список на секунду пропадает и заменяется на
+    // "Загружаю…", хотя данные для этого уже были на экране.
+    books.value = books.value.filter((b) => b.id !== book.id)
   } catch (err) {
     error.value = err.message
   }
