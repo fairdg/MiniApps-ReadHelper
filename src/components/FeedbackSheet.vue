@@ -1,12 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, toRef } from 'vue'
 import { sendFeedback } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { blurOnOutsideTap } from '../lib/tapOutside.js'
+import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
 
-defineProps({
+const props = defineProps({
   open: { type: Boolean, default: false },
 })
+
+useBodyScrollLock(toRef(props, 'open'))
 
 const emit = defineEmits(['close'])
 

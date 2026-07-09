@@ -1,11 +1,15 @@
 <script setup>
+import { toRef } from 'vue'
 import IconFeedback from './icons/IconFeedback.vue'
+import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
 
-defineProps({
+const props = defineProps({
   open: { type: Boolean, default: false },
   devMode: { type: Boolean, required: true },
   owner: { type: Boolean, default: false },
 })
+
+useBodyScrollLock(toRef(props, 'open'))
 
 const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
 </script>

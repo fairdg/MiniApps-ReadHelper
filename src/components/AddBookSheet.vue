@@ -1,13 +1,16 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, toRef } from 'vue'
 import { addBook } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { blurOnOutsideTap } from '../lib/tapOutside.js'
+import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
 import IconAttachment from './icons/IconAttachment.vue'
 
-defineProps({
+const props = defineProps({
   open: { type: Boolean, default: false },
 })
+
+useBodyScrollLock(toRef(props, 'open'))
 
 const emit = defineEmits(['close', 'added'])
 

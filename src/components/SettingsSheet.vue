@@ -1,5 +1,6 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, toRef } from 'vue'
+import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -9,6 +10,8 @@ const props = defineProps({
   deliveryActive: { type: Boolean, required: true },
   targetWords: { type: Number, required: true },
 })
+
+useBodyScrollLock(toRef(props, 'open'))
 
 const emit = defineEmits([
   'close',
