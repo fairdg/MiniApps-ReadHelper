@@ -111,6 +111,66 @@ function enforceMaxChars(chunks, maxChars = TELEGRAM_SAFE_CHARS) {
   return chunks.flatMap((chunk) => splitByLength(chunk, maxChars))
 }
 
+function countWords(text) {
+  return text.split(/\s+/).filter(Boolean).length
+}
+
+// Режет один чанк, который сильно длиннее ориентира, по предложениям —
+// то же самое, что splitByLength делает по символам под лимит Telegram, но
+// здесь порог в словах, применяется раньше и мягче (не аварийный лимит, а
+// подгонка под желаемый размер порции).
+function splitByWordCount(text, maxWords) {
+  if (countWords(text) <= maxWords) return [text]
+
+  const sentences = text.split(/(?<=[.!?])\s+/)
+  const pieces = []
+  let current = ''
+  let currentWords = 0
+
+  for (const sentence of sentences) {
+    const words = countWords(sentence)
+    if (currentWords + words > maxWords && current) {
+      pieces.push(current.trim())
+      current = ''
+      currentWords = 0
+    }
+    current += (current ? ' ' : '') + sentence
+    currentWords += words
+  }
+
+  if (current) pieces.push(current.trim())
+  return pieces
+}
+
+// ИИ-дробление (с прошлой правки) намеренно ставит смысловые границы выше
+// точного числа слов — для обычной книжной прозы это даёт естественные
+// порции чуть короче/длиннее ориентира. Но для текста с обилием коротких
+// фрагментов (веб-статьи: заголовки, списки, сноски-цитаты) получается
+// неконтролируемый разброс — от пары слов до сотен в одном чанке. Досводим
+// результат к targetWords уже после ИИ/фолбэка: слишком длинные чанки режем
+// по предложениям, слишком короткие — склеиваем с соседними.
+function renormalizeToTargetWords(chunks, targetWords) {
+  const maxWords = targetWords * 2
+  const minWords = Math.max(1, Math.round(targetWords * 0.4))
+
+  const split = chunks.flatMap((chunk) => splitByWordCount(chunk, maxWords))
+
+  const merged = []
+  for (const chunk of split) {
+    const words = countWords(chunk)
+    const last = merged[merged.length - 1]
+    const lastWords = last ? countWords(last) : 0
+
+    if (last && lastWords < minWords && lastWords + words <= maxWords) {
+      merged[merged.length - 1] = last + '\n\n' + chunk
+    } else {
+      merged.push(chunk)
+    }
+  }
+
+  return merged
+}
+
 // Заголовок главы — короткий абзац вида "Глава 3", "Часть вторая", "Chapter 4".
 // Эвристика, не парсер: не находит глав — просто нет группировки в UI, не ошибка.
 const CHAPTER_HEADING_RE = /^(глава|часть|chapter|part)\s+[\dа-яёa-z]+/i
@@ -148,7 +208,7 @@ function splitByChapters(text) {
 }
 
 async function chunkText(text, { useAi, targetWords }) {
-  if (!useAi) return enforceMaxChars(fallbackChunk(text, targetWords))
+  if (!useAi) return enforceMaxChars(renormalizeToTargetWords(fallbackChunk(text, targetWords), targetWords))
 
   const blocks = splitIntoBlocks(text)
   const allChunks = []
@@ -162,7 +222,7 @@ async function chunkText(text, { useAi, targetWords }) {
     }
   }
 
-  return enforceMaxChars(allChunks)
+  return enforceMaxChars(renormalizeToTargetWords(allChunks, targetWords))
 }
 
 // Разбивает книгу на порции для рассылки: сперва находит границы глав (если

@@ -75,6 +75,35 @@ describe('chunkBook — с распознанными главами', () => {
   })
 })
 
+// Регрессия: реальный баг — статья по ссылке (много коротких абзацев вперемешку
+// с редкими длинными) при targetWords=40 дала порции от 2 до 521 слова,
+// в среднем 95.5 — фолбэк-группировка сама по себе не режет чанк, если
+// один "абзац" уже длиннее цели, и не имеет верхней границы.
+describe('chunkBook — довод размера порции к targetWords (renormalizeToTargetWords)', () => {
+  test('caps a single oversized paragraph and merges tiny fragments toward targetWords', async () => {
+    const targetWords = 40
+    const paragraphs = [
+      // Один длинный "абзац" без внутренних пустых строк — как лид секции статьи.
+      Array.from({ length: 20 }, (_, i) => `Предложение номер ${i + 1} про читаемый контент.`).join(' '),
+      // Несколько очень коротких фрагментов подряд — как список/подписи.
+      'Короткий пункт раз.',
+      'Короткий пункт два.',
+      'Короткий пункт три.',
+    ]
+
+    const chunks = await chunkBook(paragraphs.join('\n\n'), { useAi: false, targetWords })
+    const counts = chunks.map((c) => c.content.split(/\s+/).filter(Boolean).length)
+
+    assert.ok(
+      counts.every((n) => n <= targetWords * 2),
+      `ни одна порция не должна намного превышать ориентир: ${counts}`,
+    )
+    // Три коротких пункта (по 3 слова) должны были склеиться друг с другом,
+    // а не остаться тремя отдельными микро-порциями.
+    assert.ok(chunks.length < paragraphs.length, `короткие фрагменты должны были склеиться: ${counts}`)
+  })
+})
+
 describe('chunkBook — жёсткий лимит длины под Telegram', () => {
   test('splits a single paragraph far longer than the Telegram limit', async () => {
     // enforceMaxChars режет по ~3500 символов — абзац на ~7000 обязан разбиться.
