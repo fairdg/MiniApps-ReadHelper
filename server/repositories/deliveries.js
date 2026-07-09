@@ -144,6 +144,18 @@ export async function setDeliveryPosition(bookId, position) {
   await sql`update deliveries set next_chunk_position = ${position} where book_id = ${bookId}`
 }
 
+// Перечитать книгу с начала (режим разработчика) — курсор на 0, доставка
+// снова активна (даже если была на паузе/дочитана), первая порция уйдёт по
+// обычному расписанию с этого момента.
+export async function resetProgress(bookId) {
+  const sql = getDb()
+  await sql`
+    update deliveries
+    set next_chunk_position = 0, is_active = true, next_send_at = now()
+    where book_id = ${bookId}
+  `
+}
+
 export async function getDeliveryForBook(bookId) {
   const sql = getDb()
   const [delivery] = await sql`select * from deliveries where book_id = ${bookId}`

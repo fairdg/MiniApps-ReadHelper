@@ -95,6 +95,15 @@ export async function deliverNow(bookId, telegramId) {
   return parseOrThrow(res)
 }
 
+export async function resetProgress(bookId, telegramId) {
+  const res = await fetch(`/api/books/${bookId}/reset-progress`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ telegramId }),
+  })
+  return parseOrThrow(res)
+}
+
 export async function addAdmin(telegramId, username) {
   const res = await fetch('/api/admins', {
     method: 'POST',

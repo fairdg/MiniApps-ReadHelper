@@ -1,0 +1,37 @@
+import { getUserByTelegramId } from '../../../server/repositories/users.js'
+import { getBookById } from '../../../server/repositories/books.js'
+import { resetProgress } from '../../../server/repositories/deliveries.js'
+import { isAdmin } from '../../../server/adminAccess.js'
+
+// Перечитать книгу с начала — режим разработчика. Доступен владельцу и
+// назначенным им админам, как и deliver-now.js.
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.status(405).end()
+    return
+  }
+
+  const bookId = Number(req.query.id)
+  const { telegramId } = req.body ?? {}
+
+  if (!bookId || !telegramId) {
+    res.status(400).json({ error: 'id и telegramId обязательны' })
+    return
+  }
+
+  if (!(await isAdmin(telegramId))) {
+    res.status(403).json({ error: 'Доступно только в режиме разработчика' })
+    return
+  }
+
+  const user = await getUserByTelegramId(Number(telegramId))
+  const book = await getBookById(bookId)
+
+  if (!user || !book || String(book.user_id) !== String(user.id)) {
+    res.status(404).json({ error: 'Книга не найдена' })
+    return
+  }
+
+  await resetProgress(bookId)
+  res.status(200).json({ reset: true })
+}

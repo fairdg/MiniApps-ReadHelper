@@ -8,6 +8,7 @@ import {
   updateChunkSize,
   updateBookTitle,
   deliverNow,
+  resetProgress,
 } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, isOwner, checkAdmin } from '../lib/devMode.js'
@@ -233,6 +234,25 @@ async function sendNow() {
   }
 }
 
+const resettingProgress = ref(false)
+
+async function resetBookProgress() {
+  const ok = await confirmDialog('Сбросить прогресс и начать книгу заново?')
+  if (!ok) return
+
+  resettingProgress.value = true
+  sendNowError.value = ''
+  try {
+    const { telegramId } = getTelegramUser()
+    await resetProgress(props.book.id, telegramId)
+    await load()
+  } catch (err) {
+    sendNowError.value = err.message
+  } finally {
+    resettingProgress.value = false
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -315,6 +335,13 @@ onMounted(load)
         @click="sendNow"
       >
         {{ sendingNow ? 'Отправляю…' : 'Отправить порцию сейчас' }}
+      </button>
+      <button
+        class="dev-btn"
+        :disabled="resettingProgress || deliveredCount === 0"
+        @click="resetBookProgress"
+      >
+        {{ resettingProgress ? 'Сбрасываю…' : 'Сбросить прогресс' }}
       </button>
       <p v-if="sendNowError" class="state-message error">{{ sendNowError }}</p>
     </div>
@@ -552,6 +579,9 @@ onMounted(load)
 .dev-toolbar {
   position: sticky;
   bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   padding: 12px 16px 20px;
   border-top: 1px dashed var(--separator);
   background: var(--bg);
