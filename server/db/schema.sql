@@ -3,10 +3,12 @@ create table if not exists users (
   telegram_id bigint unique not null,
   username text,
   timezone text, -- IANA-таймзона (напр. "Asia/Tomsk"), из Intl на фронте
+  is_admin boolean not null default false, -- владелец (OWNER_TELEGRAM_ID) admin всегда, независимо от этого поля
   created_at timestamptz not null default now()
 );
 
 alter table users add column if not exists timezone text;
+alter table users add column if not exists is_admin boolean not null default false;
 
 create table if not exists books (
   id bigserial primary key,

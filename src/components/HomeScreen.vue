@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { listBooks, deleteBook } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
-import { isDevMode, setDevMode, isOwner } from '../lib/devMode.js'
+import { isDevMode, setDevMode, isOwner, checkAdmin } from '../lib/devMode.js'
 import { confirmDialog } from '../lib/confirm.js'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
@@ -20,8 +20,17 @@ const addSheetOpen = ref(false)
 const appSettingsOpen = ref(false)
 const feedbackOpen = ref(false)
 const devMode = ref(isDevMode())
-const owner = isOwner(getTelegramUser().telegramId)
+// Мгновенно по env (только для настоящего владельца), пока не пришёл ответ
+// checkAdmin() — без этого шестерёнка/переключатель на миг мелькали бы для
+// владельца после каждого открытия, ожидая сеть.
+const admin = ref(isOwner(getTelegramUser().telegramId))
+const owner = ref(isOwner(getTelegramUser().telegramId))
 const activeTab = ref('inProgress') // 'inProgress' | 'done'
+
+checkAdmin(getTelegramUser().telegramId).then((result) => {
+  admin.value = result.isAdmin
+  owner.value = result.isOwner
+})
 
 function isDone(book) {
   return book.total_chunks > 0 && book.read_chunks >= book.total_chunks

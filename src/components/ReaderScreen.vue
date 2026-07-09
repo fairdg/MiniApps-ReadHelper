@@ -10,7 +10,7 @@ import {
   deliverNow,
 } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
-import { isDevMode, isOwner } from '../lib/devMode.js'
+import { isDevMode, isOwner, checkAdmin } from '../lib/devMode.js'
 import { confirmDialog } from '../lib/confirm.js'
 import IconGear from './icons/IconGear.vue'
 
@@ -20,9 +20,16 @@ const props = defineProps({
 
 const emit = defineEmits(['back'])
 
-// Кнопка "отправить сейчас" — только владельцу с включённым режимом
-// разработчика. Реальная защита от обхода — на бэкенде (deliver-now.js).
-const devMode = isDevMode() && isOwner(getTelegramUser().telegramId)
+// Кнопка "отправить сейчас" — владельцу и назначенным им админам с включённым
+// режимом разработчика. Реальная защита от обхода — на бэкенде
+// (deliver-now.js через server/adminAccess.js). Мгновенно по env (владелец),
+// пока не пришёл ответ checkAdmin() — тогда учитывает и админов из БД.
+const admin = ref(isOwner(getTelegramUser().telegramId))
+const devMode = computed(() => isDevMode() && admin.value)
+
+checkAdmin(getTelegramUser().telegramId).then((result) => {
+  admin.value = result.isAdmin
+})
 
 const settingsOpen = ref(false)
 const fontSize = ref(18)

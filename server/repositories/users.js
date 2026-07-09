@@ -20,3 +20,23 @@ export async function getUserByTelegramId(telegramId) {
   const [user] = await sql`select * from users where telegram_id = ${telegramId}`
   return user ?? null
 }
+
+// Username хранится без "@", как его отдаёт Telegram — ищем так же. Находит
+// только тех, кто хоть раз открывал приложение или писал боту (иначе его
+// telegram_id нам просто неоткуда взять).
+export async function getUserByUsername(username) {
+  const sql = getDb()
+  const clean = username.replace(/^@/, '')
+  const [user] = await sql`select * from users where lower(username) = lower(${clean})`
+  return user ?? null
+}
+
+export async function setAdmin(telegramId, isAdmin) {
+  const sql = getDb()
+  await sql`update users set is_admin = ${isAdmin} where telegram_id = ${telegramId}`
+}
+
+export async function listAdmins() {
+  const sql = getDb()
+  return sql`select telegram_id, username from users where is_admin = true order by username`
+}

@@ -2,12 +2,13 @@ import { getUserByTelegramId } from '../../../server/repositories/users.js'
 import { getBookById } from '../../../server/repositories/books.js'
 import { getDeliveryForBook } from '../../../server/repositories/deliveries.js'
 import { deliverNextChunk } from '../../../server/delivery.js'
+import { isAdmin } from '../../../server/adminAccess.js'
 
 // Ручной триггер для режима разработчика: отправляет следующую порцию
 // прямо сейчас, в обход расписания — чтобы не ждать реальный интервал
-// доставки при проверке функциональности. Доступен только владельцу
-// (OWNER_TELEGRAM_ID) — обычные пользователи не должны иметь возможность
-// обойти расписание, даже если найдут кнопку в devtools.
+// доставки при проверке функциональности. Доступен владельцу и админам,
+// которых он назначил (/api/admins) — обычные пользователи не должны иметь
+// возможность обойти расписание, даже если найдут кнопку в devtools.
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).end()
@@ -22,9 +23,8 @@ export default async function handler(req, res) {
     return
   }
 
-  const ownerId = process.env.OWNER_TELEGRAM_ID
-  if (ownerId && String(telegramId) !== ownerId) {
-    res.status(403).json({ error: 'Доступно только в режиме разработчика владельца' })
+  if (!(await isAdmin(telegramId))) {
+    res.status(403).json({ error: 'Доступно только в режиме разработчика' })
     return
   }
 

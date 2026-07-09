@@ -1,7 +1,10 @@
 <script setup>
-import { toRef } from 'vue'
+import { ref, toRef, watch } from 'vue'
 import IconFeedback from './icons/IconFeedback.vue'
 import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
+import { addAdmin, removeAdmin } from '../lib/api.js'
+import { getTelegramUser } from '../lib/telegramUser.js'
+import { checkAdmin } from '../lib/devMode.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -12,6 +15,59 @@ const props = defineProps({
 useBodyScrollLock(toRef(props, 'open'))
 
 const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
+
+const admins = ref([])
+const newAdminUsername = ref('')
+const adminError = ref('')
+const adminBusy = ref(false)
+
+async function loadAdmins() {
+  if (!props.owner) return
+  const { telegramId } = getTelegramUser()
+  const result = await checkAdmin(telegramId)
+  admins.value = result.admins ?? []
+}
+
+// Список нужен, только пока открыта шторка и пользователь — владелец;
+// перезагружаем при каждом открытии, а не держим вечно закэшированным.
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) loadAdmins()
+  },
+)
+
+async function submitAddAdmin() {
+  const username = newAdminUsername.value.trim()
+  if (!username) return
+
+  adminBusy.value = true
+  adminError.value = ''
+  try {
+    const { telegramId } = getTelegramUser()
+    await addAdmin(telegramId, username)
+    newAdminUsername.value = ''
+    await loadAdmins()
+  } catch (err) {
+    adminError.value = err.message
+  } finally {
+    adminBusy.value = false
+  }
+}
+
+async function submitRemoveAdmin(admin) {
+  adminBusy.value = true
+  adminError.value = ''
+  try {
+    const { telegramId } = getTelegramUser()
+    await removeAdmin(telegramId, admin.telegram_id)
+    admins.value = admins.value.filter((a) => a.telegram_id !== admin.telegram_id)
+  } catch (err) {
+    adminError.value = err.message
+  } finally {
+    adminBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -50,6 +106,32 @@ const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
         В режиме разработчика на экране чтения появится кнопка "Отправить порцию сейчас" — для
         проверки доставки без ожидания реального интервала.
       </p>
+
+      <h3 class="section-title">Админы</h3>
+
+      <ul v-if="admins.length" class="admin-list">
+        <li v-for="a in admins" :key="a.telegram_id" class="admin-item">
+          <span>@{{ a.username || a.telegram_id }}</span>
+          <button class="remove-btn" :disabled="adminBusy" @click="submitRemoveAdmin(a)">
+            Убрать
+          </button>
+        </li>
+      </ul>
+      <p v-else class="hint">Пока нет назначенных админов.</p>
+
+      <form class="admin-form" @submit.prevent="submitAddAdmin">
+        <input
+          v-model="newAdminUsername"
+          class="admin-input"
+          type="text"
+          placeholder="username без @"
+        />
+        <button class="add-btn" type="submit" :disabled="adminBusy || !newAdminUsername.trim()">
+          Добавить
+        </button>
+      </form>
+      <p class="hint">Добавить можно только того, кто уже хоть раз открывал это приложение.</p>
+      <p v-if="adminError" class="error">{{ adminError }}</p>
     </template>
   </div>
 </template>
@@ -147,6 +229,86 @@ const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
   color: var(--hint);
   margin: 4px 0 0;
   line-height: 1.4;
+}
+
+.section-title {
+  font-size: 13px;
+  margin: 18px 0 8px;
+  color: var(--hint);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--secondary-bg);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.remove-btn {
+  border: none;
+  background: none;
+  color: #e5484d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.admin-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.admin-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: var(--secondary-bg);
+  color: var(--text);
+  /* 16px — минимум, ниже которого iOS Safari сам зумит страницу при фокусе */
+  font-size: 16px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  height: 40px;
+}
+
+.add-btn {
+  flex-shrink: 0;
+  border: none;
+  background: var(--button);
+  color: var(--button-text);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 16px;
+  height: 40px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.add-btn:disabled {
+  opacity: 0.5;
+}
+
+.error {
+  color: #e5484d;
+  font-size: 13px;
+  margin: 8px 0 0;
 }
 
 .sheet-backdrop {
