@@ -7,6 +7,8 @@ import {
 } from '../server/repositories/deliveries.js'
 
 describe('intervalMinutesFromPerDay / perDayFromIntervalMinutes', () => {
+  // Базовый случай: UI даёт "уведомлений в день", доставка работает с
+  // интервалом в минутах — 1440 минут в сутках / 4 = 360.
   test('4 notifications/day -> 360 minute interval', () => {
     assert.equal(intervalMinutesFromPerDay(4), 360)
   })
@@ -30,11 +32,15 @@ describe('intervalMinutesFromPerDay / perDayFromIntervalMinutes', () => {
     assert.equal(intervalMinutesFromPerDay(undefined, 4), 360)
   })
 
+  // Настройки читают частоту через perDayFromIntervalMinutes — она должна
+  // честно отыгрывать то же число обратно, без потерь на округлении.
   test('round-trips through perDayFromIntervalMinutes', () => {
     const interval = intervalMinutesFromPerDay(6)
     assert.equal(perDayFromIntervalMinutes(interval), 6)
   })
 
+  // У книги без активной доставки interval_minutes может быть 0/null —
+  // тогда UI должен показать разумный дефолт, а не NaN/Infinity.
   test('perDayFromIntervalMinutes defaults to 4 for falsy interval', () => {
     assert.equal(perDayFromIntervalMinutes(0), 4)
     assert.equal(perDayFromIntervalMinutes(null), 4)
@@ -79,6 +85,9 @@ describe('avoidQuietHours', () => {
     assert.notEqual(result.getTime(), date.getTime())
   })
 
+  // Пользователь, который ни разу не открывал мини-аппу в браузере (только
+  // писал боту), может не иметь сохранённой таймзоны — не должно падать,
+  // должно вести себя как UTC.
   test('falls back to UTC when timezone is null (no saved timezone)', () => {
     const date = new Date('2026-01-15T02:00:00Z')
     const withNull = avoidQuietHours(date, null)

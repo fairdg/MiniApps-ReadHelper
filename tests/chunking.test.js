@@ -3,18 +3,22 @@ import assert from 'node:assert/strict'
 import { chunkBook, clampTargetWords, MIN_TARGET_WORDS, MAX_TARGET_WORDS } from '../server/chunking.js'
 
 describe('clampTargetWords', () => {
+  // Пользователь не может выставить меньше MIN_TARGET_WORDS через API напрямую.
   test('clamps below the minimum', () => {
     assert.equal(clampTargetWords(1), MIN_TARGET_WORDS)
   })
 
+  // И не может выставить больше MAX_TARGET_WORDS.
   test('clamps above the maximum', () => {
     assert.equal(clampTargetWords(10000), MAX_TARGET_WORDS)
   })
 
+  // Значение внутри допустимого диапазона должно пройти без изменений.
   test('passes through a value already in range', () => {
     assert.equal(clampTargetWords(150), 150)
   })
 
+  // targetWords — счётчик слов, дробных значений быть не должно.
   test('rounds a fractional value', () => {
     assert.equal(clampTargetWords(120.6), 121)
   })
@@ -33,6 +37,8 @@ describe('clampTargetWords', () => {
 // вызовов к Gemini (splitByChapters/enforceMaxChars отрабатывают одинаково
 // независимо от useAi, а fallbackChunk детерминирован).
 describe('chunkBook — без распознанных глав', () => {
+  // Книга без заголовков вида "Глава N" — UI не должен ждать группировки,
+  // все чанки идут с chapter: null (плоский список, не ошибка).
   test('returns chapter: null for every chunk when no headings are found', async () => {
     const paragraphs = Array.from({ length: 6 }, (_, i) => `Абзац номер ${i + 1} обычного текста книги без глав.`)
     const chunks = await chunkBook(paragraphs.join('\n\n'), { useAi: false, targetWords: 100 })
@@ -51,6 +57,8 @@ describe('chunkBook — без распознанных глав', () => {
 })
 
 describe('chunkBook — с распознанными главами', () => {
+  // Базовый случай распознавания глав — каждый чанк должен нести имя своей
+  // главы, чтобы ридер мог группировать порции по главам в UI.
   test('splits into chapters on "Глава N" headings and tags each chunk', async () => {
     const text = [
       'Глава 1',
@@ -67,6 +75,8 @@ describe('chunkBook — с распознанными главами', () => {
     assert.ok(chunks.every((c) => c.content.length > 0))
   })
 
+  // Эвристика заголовков глав понимает не только "Глава N" — "Часть"/англ.
+  // "Chapter" тоже должны сработать.
   test('recognizes "Часть"/"Chapter" heading variants', async () => {
     const text = ['Часть первая', 'Текст.', '', 'Chapter 2', 'Text.'].join('\n\n')
     const chunks = await chunkBook(text, { useAi: false, targetWords: 100 })

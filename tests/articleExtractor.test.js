@@ -7,30 +7,39 @@ function utf8Bytes(str) {
 }
 
 describe('detectCharset', () => {
+  // Основной путь — сайт нормально объявляет кодировку в HTTP-заголовке.
   test('reads charset from the Content-Type header when present', () => {
     assert.equal(detectCharset('text/html; charset=windows-1251', utf8Bytes('')), 'windows-1251')
   })
 
+  // Заголовок HTTP авторитетнее содержимого страницы — не должны
+  // "подсматривать" в meta, если ответ уже сказал, что тут UTF-8.
   test('header charset wins even if a different one is in a meta tag', () => {
     const head = utf8Bytes('<html><head><meta charset="koi8-r"></head>')
     assert.equal(detectCharset('text/html; charset=utf-8', head), 'utf-8')
   })
 
+  // Ровно та ситуация, что вызвала реальный баг: заголовок без charset,
+  // кодировка объявлена только внутри HTML.
   test('falls back to <meta charset="..."> when the header has none', () => {
     const head = utf8Bytes('<html><head><meta charset="windows-1251"><title>x</title>')
     assert.equal(detectCharset('text/html', head), 'windows-1251')
   })
 
+  // Старый способ объявления кодировки (до HTML5 <meta charset>) — тоже
+  // должен распознаваться.
   test('falls back to <meta http-equiv content="...charset=..."> form', () => {
     const head = utf8Bytes('<html><head><meta http-equiv="Content-Type" content="text/html; charset=koi8-r">')
     assert.equal(detectCharset('text/html', head), 'koi8-r')
   })
 
+  // Кодировка нигде не объявлена явно — безопасный дефолт UTF-8.
   test('defaults to utf-8 when nothing declares a charset anywhere', () => {
     const head = utf8Bytes('<html><head><title>No charset here</title></head>')
     assert.equal(detectCharset('text/html', head), 'utf-8')
   })
 
+  // Ответ вообще без Content-Type — не должно падать, тот же дефолт UTF-8.
   test('defaults to utf-8 when there is no Content-Type header at all', () => {
     assert.equal(detectCharset(null, utf8Bytes('<html></html>')), 'utf-8')
   })
@@ -54,6 +63,8 @@ describe('decodeHtml — регрессия реального бага (стр�
     assert.match(decoded, /text/)
   })
 
+  // Опечатка/выдуманная кодировка в meta — TextDecoder бросит исключение на
+  // неизвестном label; лучше молча откатиться на UTF-8, чем упасть целиком.
   test('falls back to utf-8 decoding when the declared charset is unsupported/unknown', () => {
     const html = '<html><head><meta charset="not-a-real-charset"></head><body><p>ok</p></body></html>'
     const buffer = utf8Bytes(html)
