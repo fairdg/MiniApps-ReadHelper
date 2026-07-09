@@ -171,6 +171,7 @@ onMounted(load)
     <AppSettingsSheet
       :open="appSettingsOpen"
       :dev-mode="devMode"
+      :admin="admin"
       :owner="owner"
       @close="appSettingsOpen = false"
       @update:dev-mode="changeDevMode"

@@ -9,6 +9,7 @@ import { checkAdmin } from '../lib/devMode.js'
 const props = defineProps({
   open: { type: Boolean, default: false },
   devMode: { type: Boolean, required: true },
+  admin: { type: Boolean, default: false },
   owner: { type: Boolean, default: false },
 })
 
@@ -55,13 +56,13 @@ async function submitAddAdmin() {
   }
 }
 
-async function submitRemoveAdmin(admin) {
+async function submitRemoveAdmin(adminEntry) {
   adminBusy.value = true
   adminError.value = ''
   try {
     const { telegramId } = getTelegramUser()
-    await removeAdmin(telegramId, admin.telegram_id)
-    admins.value = admins.value.filter((a) => a.telegram_id !== admin.telegram_id)
+    await removeAdmin(telegramId, adminEntry.telegram_id)
+    admins.value = admins.value.filter((a) => a.telegram_id !== adminEntry.telegram_id)
   } catch (err) {
     adminError.value = err.message
   } finally {
@@ -81,7 +82,7 @@ async function submitRemoveAdmin(admin) {
       Оставить отзыв
     </button>
 
-    <template v-if="owner">
+    <template v-if="admin">
       <div class="setting-row">
         <span>Режим разработчика</span>
         <div class="segmented">
@@ -106,7 +107,9 @@ async function submitRemoveAdmin(admin) {
         В режиме разработчика на экране чтения появится кнопка "Отправить порцию сейчас" — для
         проверки доставки без ожидания реального интервала.
       </p>
+    </template>
 
+    <template v-if="owner">
       <h3 class="section-title">Админы</h3>
 
       <ul v-if="admins.length" class="admin-list">
