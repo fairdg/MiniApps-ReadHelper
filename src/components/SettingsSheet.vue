@@ -152,6 +152,12 @@ function applyTargetWords() {
   transition: transform 0.25s ease;
   z-index: 20;
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+  /* body заблокирован (useBodyScrollLock), пока открыта шторка — если её
+     содержимое не помещается (особенно когда клавиатура съедает часть
+     экрана), скроллить должна сама шторка, а не документ. */
+  max-height: 85vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sheet.open {
