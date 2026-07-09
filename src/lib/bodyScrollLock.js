@@ -17,6 +17,11 @@ function lock() {
     document.body.style.position = 'fixed'
     document.body.style.top = `-${savedScrollY}px`
     document.body.style.width = '100%'
+    // <html> тоже может проскроллиться независимо от body в некоторых
+    // WebView — блокируем и его, иначе шторка всё равно может дёрнуться,
+    // даже когда body уже зафиксирован.
+    document.documentElement.style.overflow = 'hidden'
+    document.documentElement.style.height = '100%'
   }
   lockCount++
 }
@@ -27,6 +32,8 @@ function unlock() {
     document.body.style.position = ''
     document.body.style.top = ''
     document.body.style.width = ''
+    document.documentElement.style.overflow = ''
+    document.documentElement.style.height = ''
     window.scrollTo(0, savedScrollY)
   }
 }
