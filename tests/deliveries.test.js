@@ -6,6 +6,7 @@ import {
   avoidQuietHours,
   isQuietHours,
   nextScheduleBase,
+  deliveryClaimUntil,
 } from '../server/repositories/deliveries.js'
 
 describe('intervalMinutesFromPerDay / notificationsPerDayFromDelivery', () => {
@@ -125,5 +126,13 @@ describe('nextScheduleBase', () => {
     const now = new Date('2026-01-15T12:30:00Z')
     const base = nextScheduleBase({ scheduledAt, intervalMinutes: 64, now })
     assert.equal(base.getTime(), now.getTime())
+  })
+})
+
+describe('deliveryClaimUntil', () => {
+  test('creates a short claim lease in the future', () => {
+    const now = new Date('2026-01-15T10:00:00Z')
+    const claimedUntil = deliveryClaimUntil(now)
+    assert.equal(claimedUntil.toISOString(), '2026-01-15T10:10:00.000Z')
   })
 })

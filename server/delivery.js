@@ -23,7 +23,7 @@ export async function deliverNextChunk(delivery) {
   const chunk = await getChunk(delivery.book_id, delivery.next_chunk_position)
 
   if (!chunk) {
-    await deactivateDelivery(delivery.id)
+    await deactivateDelivery(delivery)
     return { sent: false }
   }
 
@@ -35,7 +35,7 @@ export async function deliverNextChunk(delivery) {
   const nextPosition = delivery.next_chunk_position + 1
 
   if (nextPosition >= total) {
-    await deactivateDelivery(delivery.id, nextPosition)
+    await deactivateDelivery(delivery, nextPosition)
   } else {
     await advanceDelivery(delivery, nextPosition)
   }

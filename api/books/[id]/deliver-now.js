@@ -1,6 +1,6 @@
 import { getUserByTelegramId } from '../../../server/repositories/users.js'
 import { getBookById } from '../../../server/repositories/books.js'
-import { getDeliveryForBook } from '../../../server/repositories/deliveries.js'
+import { getDeliveryForBook, claimDelivery, releaseDeliveryClaim } from '../../../server/repositories/deliveries.js'
 import { deliverNextChunk } from '../../../server/delivery.js'
 import { isAdmin } from '../../../server/adminAccess.js'
 import { requireAuth } from '../../../server/auth.js'
@@ -45,10 +45,28 @@ export default async function handler(req, res) {
     return
   }
 
-  const result = await deliverNextChunk({
-    ...delivery,
-    telegram_id: user.telegram_id,
-    timezone: user.timezone,
-  })
-  res.status(200).json(result)
+  const claimed = await claimDelivery(
+    {
+      ...delivery,
+      telegram_id: user.telegram_id,
+      timezone: user.timezone,
+    },
+    { force: true },
+  )
+
+  if (!claimed) {
+    res.status(409).json({ error: 'Эта доставка уже обрабатывается другим процессом' })
+    return
+  }
+
+  try {
+    const result = await deliverNextChunk(claimed)
+    res.status(200).json(result)
+  } catch (err) {
+    await releaseDeliveryClaim(claimed).catch((releaseErr) => {
+      console.error(`Delivery ${claimed.id} claim release failed:`, releaseErr)
+    })
+    console.error(`Delivery ${claimed.id} failed:`, err)
+    res.status(500).json({ error: 'Не удалось отправить порцию сейчас' })
+  }
 }

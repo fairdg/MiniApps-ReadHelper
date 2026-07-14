@@ -1,4 +1,4 @@
-import { getDueDeliveries } from '../../server/repositories/deliveries.js'
+import { getDueDeliveries, claimDelivery, releaseDeliveryClaim } from '../../server/repositories/deliveries.js'
 import { deliverNextChunk } from '../../server/delivery.js'
 
 export default async function handler(req, res) {
@@ -13,12 +13,21 @@ export default async function handler(req, res) {
   let failed = 0
 
   for (const delivery of due) {
+    let claimed = null
     try {
-      const result = await deliverNextChunk(delivery)
+      claimed = await claimDelivery(delivery)
+      if (!claimed) continue
+
+      const result = await deliverNextChunk(claimed)
       if (result.sent) sent++
     } catch (err) {
       // Одна сломанная доставка (например, невалидный chat_id) не должна
       // останавливать рассылку остальным пользователям.
+      if (claimed) {
+        await releaseDeliveryClaim(claimed).catch((releaseErr) => {
+          console.error(`Delivery ${delivery.id} claim release failed:`, releaseErr)
+        })
+      }
       console.error(`Delivery ${delivery.id} failed:`, err)
       failed++
     }
