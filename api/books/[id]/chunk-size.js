@@ -1,9 +1,10 @@
 import { getUserByTelegramId } from '../../../server/repositories/users.js'
-import { getBookById, updateTargetWords, markBookReady, markBookFailed } from '../../../server/repositories/books.js'
-import { saveChunks, deleteChunksForBook, getChunksForBook } from '../../../server/repositories/chunks.js'
-import { getDeliveryForBook, setDeliveryPosition } from '../../../server/repositories/deliveries.js'
+import { getBookById, markBookFailed } from '../../../server/repositories/books.js'
+import { getChunksForBook } from '../../../server/repositories/chunks.js'
+import { getDeliveryForBook } from '../../../server/repositories/deliveries.js'
 import { chunkBook, clampTargetWords } from '../../../server/chunking.js'
 import { requireAuth } from '../../../server/auth.js'
+import { getDb } from '../../../server/db.js'
 
 // Находит позицию в новых чанках, примерно соответствующую тому же месту в
 // книге, где читатель остановился по старым чанкам — иначе смена размера
@@ -21,6 +22,20 @@ function findEquivalentPosition(oldChunks, oldPosition, newChunks) {
     if (covered >= readChars) return i
   }
   return newChunks.length
+}
+
+function buildReplaceChunksQueries(sql, bookId, chunks) {
+  const queries = [sql`delete from chunks where book_id = ${bookId}`]
+
+  for (let position = 0; position < chunks.length; position++) {
+    const { chapter = null, content } = chunks[position]
+    queries.push(sql`
+      insert into chunks (book_id, position, content, chapter)
+      values (${bookId}, ${position}, ${content}, ${chapter})
+    `)
+  }
+
+  return queries
 }
 
 // Меняет ориентир размера порции для уже добавленной книги и пересобирает
@@ -58,16 +73,28 @@ export default async function handler(req, res) {
   try {
     const [oldChunks, delivery] = await Promise.all([getChunksForBook(bookId), getDeliveryForBook(bookId)])
     const chunks = await chunkBook(book.source_text, { targetWords: resolvedTargetWords })
+    const newPosition = delivery
+      ? findEquivalentPosition(oldChunks, delivery.next_chunk_position, chunks)
+      : null
+    const sql = getDb()
 
-    await deleteChunksForBook(bookId)
-    await saveChunks(bookId, chunks)
-    await updateTargetWords(bookId, resolvedTargetWords)
-    await markBookReady(bookId)
+    await sql.transaction((tx) => {
+      const queries = [
+        ...buildReplaceChunksQueries(tx, bookId, chunks),
+        tx`
+          update books
+          set target_words = ${resolvedTargetWords},
+              status = 'ready'
+          where id = ${bookId}
+        `,
+      ]
 
-    if (delivery) {
-      const newPosition = findEquivalentPosition(oldChunks, delivery.next_chunk_position, chunks)
-      await setDeliveryPosition(bookId, newPosition)
-    }
+      if (newPosition != null) {
+        queries.push(tx`update deliveries set next_chunk_position = ${newPosition} where book_id = ${bookId}`)
+      }
+
+      return queries
+    })
 
     res.status(200).json({ targetWords: resolvedTargetWords, chunkCount: chunks.length })
   } catch (err) {
