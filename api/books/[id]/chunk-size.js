@@ -3,6 +3,7 @@ import { getBookById, updateTargetWords, markBookReady, markBookFailed } from '.
 import { saveChunks, deleteChunksForBook, getChunksForBook } from '../../../server/repositories/chunks.js'
 import { getDeliveryForBook, setDeliveryPosition } from '../../../server/repositories/deliveries.js'
 import { chunkBook, clampTargetWords } from '../../../server/chunking.js'
+import { requireAuth } from '../../../server/auth.js'
 
 // Находит позицию в новых чанках, примерно соответствующую тому же месту в
 // книге, где читатель остановился по старым чанкам — иначе смена размера
@@ -33,15 +34,18 @@ export default async function handler(req, res) {
     return
   }
 
-  const bookId = Number(req.query.id)
-  const { telegramId, targetWords } = req.body ?? {}
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  if (!bookId || !telegramId || targetWords == null) {
-    res.status(400).json({ error: 'id, telegramId и targetWords обязательны' })
+  const bookId = Number(req.query.id)
+  const { targetWords } = req.body ?? {}
+
+  if (!bookId || targetWords == null) {
+    res.status(400).json({ error: 'id и targetWords обязательны' })
     return
   }
 
-  const user = await getUserByTelegramId(Number(telegramId))
+  const user = await getUserByTelegramId(auth.telegramId)
   const book = await getBookById(bookId)
 
   if (!user || !book || String(book.user_id) !== String(user.id)) {

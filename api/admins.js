@@ -1,25 +1,22 @@
 import { getUserByUsername, setAdmin, listAdmins } from '../server/repositories/users.js'
 import { isOwner, isAdmin } from '../server/adminAccess.js'
+import { requireAuth } from '../server/auth.js'
 
 // Управление списком админов — доступно только владельцу (OWNER_TELEGRAM_ID).
 // GET — тоже используется как обычная проверка "админ ли я" для UI (devMode.js):
 // список админов внутри отдаёт только владельцу, остальным — только isAdmin.
 export default async function handler(req, res) {
-  const telegramId = req.method === 'GET' ? req.query.telegramId : req.body?.telegramId
-
-  if (!telegramId) {
-    res.status(400).json({ error: 'telegramId обязателен' })
-    return
-  }
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
   if (req.method === 'GET') {
-    const admin = await isAdmin(telegramId)
-    const admins = isOwner(telegramId) ? await listAdmins() : []
-    res.status(200).json({ isAdmin: admin, isOwner: isOwner(telegramId), admins })
+    const admin = await isAdmin(auth.telegramId)
+    const admins = isOwner(auth.telegramId) ? await listAdmins() : []
+    res.status(200).json({ isAdmin: admin, isOwner: isOwner(auth.telegramId), admins })
     return
   }
 
-  if (!isOwner(telegramId)) {
+  if (!isOwner(auth.telegramId)) {
     res.status(403).json({ error: 'Управлять админами может только владелец' })
     return
   }

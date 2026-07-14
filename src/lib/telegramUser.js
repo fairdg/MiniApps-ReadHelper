@@ -21,11 +21,35 @@ function getTimezone() {
   }
 }
 
+function telegramWebApp() {
+  return window.Telegram?.WebApp
+}
+
 export function getTelegramUser() {
-  const user = window.Telegram?.WebApp?.initDataUnsafe?.user
+  const user = telegramWebApp()?.initDataUnsafe?.user
   const base = user?.id
     ? { telegramId: user.id, username: user.username ?? null }
     : getDevUser()
 
   return { ...base, timezone: getTimezone() }
+}
+
+export function getAuthHeaders() {
+  const initData = telegramWebApp()?.initData
+  if (initData) {
+    return { 'X-Telegram-Init-Data': initData }
+  }
+
+  const { telegramId, username } = getTelegramUser()
+  const encoded = btoa(
+    JSON.stringify({
+      telegramId,
+      username,
+    }),
+  )
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+
+  return { 'X-ReadHelper-Dev-Auth': encoded }
 }

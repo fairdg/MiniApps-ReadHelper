@@ -63,10 +63,8 @@ async function submit() {
   error.value = ''
 
   try {
-    const { telegramId, username, timezone } = getTelegramUser()
+    const { timezone } = getTelegramUser()
     await addBook({
-      telegramId,
-      username,
       title: title.value.trim() || undefined,
       text: hasUrl ? undefined : text.value.trim(),
       url: hasUrl ? url.value.trim() : undefined,
