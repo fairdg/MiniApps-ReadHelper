@@ -38,9 +38,20 @@ create table if not exists deliveries (
   book_id bigint not null references books(id) on delete cascade,
   next_chunk_position int not null default 0,
   interval_minutes int not null default 240,
+  notifications_per_day int,
   next_send_at timestamptz not null default now(),
   is_active boolean not null default true
 );
+
+alter table deliveries add column if not exists notifications_per_day int;
+
+update deliveries
+set notifications_per_day = greatest(1, least(14, round(1440.0 / nullif(interval_minutes, 0))))
+where notifications_per_day is null;
+
+update deliveries
+set interval_minutes = greatest(1, round(900.0 / notifications_per_day))
+where notifications_per_day is not null;
 
 create table if not exists feedback (
   id bigserial primary key,

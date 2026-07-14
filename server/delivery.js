@@ -37,7 +37,7 @@ export async function deliverNextChunk(delivery) {
   if (nextPosition >= total) {
     await deactivateDelivery(delivery.id, nextPosition)
   } else {
-    await advanceDelivery(delivery.id, nextPosition, delivery.interval_minutes, delivery.timezone)
+    await advanceDelivery(delivery, nextPosition)
   }
 
   return { sent: true }
