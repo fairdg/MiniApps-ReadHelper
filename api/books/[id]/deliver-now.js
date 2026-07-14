@@ -3,6 +3,7 @@ import { getBookById } from '../../../server/repositories/books.js'
 import { getDeliveryForBook } from '../../../server/repositories/deliveries.js'
 import { deliverNextChunk } from '../../../server/delivery.js'
 import { isAdmin } from '../../../server/adminAccess.js'
+import { requireAuth } from '../../../server/auth.js'
 
 // Ручной триггер для режима разработчика: отправляет следующую порцию
 // прямо сейчас, в обход расписания — чтобы не ждать реальный интервал
@@ -15,20 +16,21 @@ export default async function handler(req, res) {
     return
   }
 
-  const bookId = Number(req.query.id)
-  const { telegramId } = req.body ?? {}
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  if (!bookId || !telegramId) {
-    res.status(400).json({ error: 'id и telegramId обязательны' })
+  const bookId = Number(req.query.id)
+  if (!bookId) {
+    res.status(400).json({ error: 'id обязателен' })
     return
   }
 
-  if (!(await isAdmin(telegramId))) {
+  if (!(await isAdmin(auth.telegramId))) {
     res.status(403).json({ error: 'Доступно только в режиме разработчика' })
     return
   }
 
-  const user = await getUserByTelegramId(Number(telegramId))
+  const user = await getUserByTelegramId(auth.telegramId)
   const book = await getBookById(bookId)
 
   if (!user || !book || String(book.user_id) !== String(user.id)) {

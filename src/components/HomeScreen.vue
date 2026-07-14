@@ -27,7 +27,7 @@ const admin = ref(isOwner(getTelegramUser().telegramId))
 const owner = ref(isOwner(getTelegramUser().telegramId))
 const activeTab = ref('inProgress') // 'inProgress' | 'done'
 
-checkAdmin(getTelegramUser().telegramId).then((result) => {
+checkAdmin().then((result) => {
   admin.value = result.isAdmin
   owner.value = result.isOwner
 })
@@ -64,8 +64,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const { telegramId } = getTelegramUser()
-    const { books: fetched } = await listBooks(telegramId)
+    const { books: fetched } = await listBooks()
     books.value = fetched
   } catch (err) {
     error.value = err.message
@@ -89,8 +88,7 @@ async function removeBook(book) {
   if (!ok) return
 
   try {
-    const { telegramId } = getTelegramUser()
-    await deleteBook(book.id, telegramId)
+    await deleteBook(book.id)
     // Убираем из уже загруженного списка на месте, а не через повторный
     // load() — иначе весь список на секунду пропадает и заменяется на
     // "Загружаю…", хотя данные для этого уже были на экране.

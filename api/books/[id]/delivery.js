@@ -5,6 +5,7 @@ import {
   setDeliveryActive,
   notificationsPerDayFromDelivery,
 } from '../../../server/repositories/deliveries.js'
+import { requireAuth } from '../../../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'PATCH') {
@@ -12,15 +13,18 @@ export default async function handler(req, res) {
     return
   }
 
-  const bookId = Number(req.query.id)
-  const { telegramId, notificationsPerDay, isActive } = req.body ?? {}
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  if (!bookId || !telegramId || (notificationsPerDay == null && isActive == null)) {
-    res.status(400).json({ error: 'id, telegramId и notificationsPerDay/isActive обязательны' })
+  const bookId = Number(req.query.id)
+  const { notificationsPerDay, isActive } = req.body ?? {}
+
+  if (!bookId || (notificationsPerDay == null && isActive == null)) {
+    res.status(400).json({ error: 'id и notificationsPerDay/isActive обязательны' })
     return
   }
 
-  const user = await getUserByTelegramId(Number(telegramId))
+  const user = await getUserByTelegramId(auth.telegramId)
   const book = await getBookById(bookId)
 
   if (!user || !book || String(book.user_id) !== String(user.id)) {

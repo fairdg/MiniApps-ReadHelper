@@ -1,5 +1,6 @@
 import { getUserByTelegramId } from '../../server/repositories/users.js'
 import { listBooksWithProgress } from '../../server/repositories/books.js'
+import { requireAuth } from '../../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -7,13 +8,10 @@ export default async function handler(req, res) {
     return
   }
 
-  const telegramId = Number(req.query.telegramId)
-  if (!telegramId) {
-    res.status(400).json({ error: 'telegramId обязателен' })
-    return
-  }
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  const user = await getUserByTelegramId(telegramId)
+  const user = await getUserByTelegramId(auth.telegramId)
   if (!user) {
     res.status(200).json({ books: [] })
     return

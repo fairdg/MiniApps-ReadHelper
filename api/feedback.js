@@ -1,6 +1,7 @@
 import { upsertUser } from '../server/repositories/users.js'
 import { createFeedback } from '../server/repositories/feedback.js'
 import { sendMessage } from '../server/telegram.js'
+import { requireAuth } from '../server/auth.js'
 
 // #отзыв — хэштег в начале сообщения, чтобы владелец мог найти все отзывы
 // поиском прямо внутри чата с ботом (Telegram делает хэштеги кликабельными).
@@ -15,20 +16,26 @@ export default async function handler(req, res) {
     return
   }
 
-  const { telegramId, username, message } = req.body ?? {}
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  if (!telegramId || !message?.trim()) {
-    res.status(400).json({ error: 'telegramId и message обязательны' })
+  const { message } = req.body ?? {}
+
+  if (!message?.trim()) {
+    res.status(400).json({ error: 'message обязателен' })
     return
   }
 
-  const user = await upsertUser({ telegramId, username })
+  const user = await upsertUser({ telegramId: auth.telegramId, username: auth.username })
   const feedback = await createFeedback({ userId: user.id, message: message.trim() })
 
   const ownerId = process.env.OWNER_TELEGRAM_ID
   if (ownerId) {
     try {
-      await sendMessage(ownerId, buildOwnerNotification({ username, telegramId, message: message.trim() }))
+      await sendMessage(
+        ownerId,
+        buildOwnerNotification({ username: auth.username, telegramId: auth.telegramId, message: message.trim() }),
+      )
     } catch (err) {
       // Отзыв уже сохранён в БД — не роняем запрос, если не удалось уведомить.
       console.error('Failed to notify owner about feedback:', err)

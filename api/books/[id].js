@@ -1,5 +1,6 @@
 import { getUserByTelegramId } from '../../server/repositories/users.js'
 import { getBookById, deleteBook, updateTitle } from '../../server/repositories/books.js'
+import { requireAuth } from '../../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'DELETE' && req.method !== 'PATCH') {
@@ -7,15 +8,16 @@ export default async function handler(req, res) {
     return
   }
 
-  const bookId = Number(req.query.id)
-  const telegramId = Number(req.method === 'DELETE' ? req.query.telegramId : req.body?.telegramId)
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  if (!bookId || !telegramId) {
-    res.status(400).json({ error: 'id и telegramId обязательны' })
+  const bookId = Number(req.query.id)
+  if (!bookId) {
+    res.status(400).json({ error: 'id обязателен' })
     return
   }
 
-  const user = await getUserByTelegramId(telegramId)
+  const user = await getUserByTelegramId(auth.telegramId)
   const book = await getBookById(bookId)
 
   if (!user || !book || String(book.user_id) !== String(user.id)) {

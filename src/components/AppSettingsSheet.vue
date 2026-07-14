@@ -3,7 +3,6 @@ import { ref, toRef, watch } from 'vue'
 import IconFeedback from './icons/IconFeedback.vue'
 import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
 import { addAdmin, removeAdmin } from '../lib/api.js'
-import { getTelegramUser } from '../lib/telegramUser.js'
 import { checkAdmin } from '../lib/devMode.js'
 
 const props = defineProps({
@@ -24,8 +23,7 @@ const adminBusy = ref(false)
 
 async function loadAdmins() {
   if (!props.owner) return
-  const { telegramId } = getTelegramUser()
-  const result = await checkAdmin(telegramId)
+  const result = await checkAdmin()
   admins.value = result.admins ?? []
 }
 
@@ -45,8 +43,7 @@ async function submitAddAdmin() {
   adminBusy.value = true
   adminError.value = ''
   try {
-    const { telegramId } = getTelegramUser()
-    await addAdmin(telegramId, username)
+    await addAdmin(username)
     newAdminUsername.value = ''
     await loadAdmins()
   } catch (err) {
@@ -60,8 +57,7 @@ async function submitRemoveAdmin(adminEntry) {
   adminBusy.value = true
   adminError.value = ''
   try {
-    const { telegramId } = getTelegramUser()
-    await removeAdmin(telegramId, adminEntry.telegram_id)
+    await removeAdmin(adminEntry.telegram_id)
     admins.value = admins.value.filter((a) => a.telegram_id !== adminEntry.telegram_id)
   } catch (err) {
     adminError.value = err.message

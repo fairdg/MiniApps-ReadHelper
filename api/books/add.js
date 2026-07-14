@@ -5,6 +5,7 @@ import { createDelivery } from '../../server/repositories/deliveries.js'
 import { chunkBook, clampTargetWords } from '../../server/chunking.js'
 import { normalizeBookText, assertReadableText } from '../../server/textClean.js'
 import { extractArticle } from '../../server/articleExtractor.js'
+import { requireAuth } from '../../server/auth.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -12,11 +13,13 @@ export default async function handler(req, res) {
     return
   }
 
-  const { telegramId, username, title, text, url, notificationsPerDay, timezone, targetWords } =
-    req.body ?? {}
+  const auth = requireAuth(req, res)
+  if (!auth) return
 
-  if (!telegramId || (!text && !url)) {
-    res.status(400).json({ error: 'telegramId и (text или url) обязательны' })
+  const { title, text, url, notificationsPerDay, timezone, targetWords } = req.body ?? {}
+
+  if (!text && !url) {
+    res.status(400).json({ error: 'Нужен текст или url' })
     return
   }
 
@@ -51,7 +54,7 @@ export default async function handler(req, res) {
 
   const resolvedTargetWords = clampTargetWords(targetWords)
 
-  const user = await upsertUser({ telegramId, username, timezone })
+  const user = await upsertUser({ telegramId: auth.telegramId, username: auth.username, timezone })
   const book = await createBook({
     userId: user.id,
     title: sourceTitle,

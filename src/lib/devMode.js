@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './telegramUser.js'
+
 const KEY = 'readhelper_dev_mode'
 
 export function isDevMode() {
@@ -23,8 +25,10 @@ export function isOwner(telegramId) {
 // Полная проверка (владелец ИЛИ админ из БД) — асинхронная, дергает бэкенд.
 // Заодно отдаёт список админов, если спрашивающий — сам владелец (иначе
 // пустой массив), чтобы не делать отдельный запрос для UI управления ими.
-export async function checkAdmin(telegramId) {
-  const res = await fetch(`/api/admins?telegramId=${telegramId}`)
+export async function checkAdmin() {
+  const res = await fetch('/api/admins', {
+    headers: getAuthHeaders(),
+  })
   if (!res.ok) return { isAdmin: false, isOwner: false, admins: [] }
   return res.json()
 }

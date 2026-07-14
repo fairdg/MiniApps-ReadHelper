@@ -1,3 +1,5 @@
+import { getAuthHeaders } from './telegramUser.js'
+
 async function parseOrThrow(res) {
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
@@ -6,9 +8,11 @@ async function parseOrThrow(res) {
   return res.json()
 }
 
+function buildHeaders(extra = {}) {
+  return { ...extra, ...getAuthHeaders() }
+}
+
 export async function addBook({
-  telegramId,
-  username,
   title,
   text,
   url,
@@ -18,10 +22,8 @@ export async function addBook({
 }) {
   const res = await fetch('/api/books/add', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
-      telegramId,
-      username,
       title,
       text,
       url,
@@ -33,100 +35,105 @@ export async function addBook({
   return parseOrThrow(res)
 }
 
-export async function listBooks(telegramId) {
-  const res = await fetch(`/api/books/list?telegramId=${telegramId}`)
-  return parseOrThrow(res)
-}
-
-export async function deleteBook(bookId, telegramId) {
-  const res = await fetch(`/api/books/${bookId}?telegramId=${telegramId}`, {
-    method: 'DELETE',
+export async function listBooks() {
+  const res = await fetch('/api/books/list', {
+    headers: buildHeaders(),
   })
   return parseOrThrow(res)
 }
 
-export async function updateBookTitle(bookId, telegramId, title) {
+export async function deleteBook(bookId) {
+  const res = await fetch(`/api/books/${bookId}`, {
+    method: 'DELETE',
+    headers: buildHeaders(),
+  })
+  return parseOrThrow(res)
+}
+
+export async function updateBookTitle(bookId, title) {
   const res = await fetch(`/api/books/${bookId}`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, title }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ title }),
   })
   return parseOrThrow(res)
 }
 
-export async function getBookChunks(bookId, telegramId) {
-  const res = await fetch(`/api/books/${bookId}/chunks?telegramId=${telegramId}`)
+export async function getBookChunks(bookId) {
+  const res = await fetch(`/api/books/${bookId}/chunks`, {
+    headers: buildHeaders(),
+  })
   return parseOrThrow(res)
 }
 
-export async function updateDeliveryFrequency(bookId, telegramId, notificationsPerDay) {
+export async function updateDeliveryFrequency(bookId, notificationsPerDay) {
   const res = await fetch(`/api/books/${bookId}/delivery`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, notificationsPerDay }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ notificationsPerDay }),
   })
   return parseOrThrow(res)
 }
 
-export async function updateDeliveryActive(bookId, telegramId, isActive) {
+export async function updateDeliveryActive(bookId, isActive) {
   const res = await fetch(`/api/books/${bookId}/delivery`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, isActive }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ isActive }),
   })
   return parseOrThrow(res)
 }
 
-export async function updateChunkSize(bookId, telegramId, targetWords) {
+export async function updateChunkSize(bookId, targetWords) {
   const res = await fetch(`/api/books/${bookId}/chunk-size`, {
     method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, targetWords }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ targetWords }),
   })
   return parseOrThrow(res)
 }
 
-export async function deliverNow(bookId, telegramId) {
+export async function deliverNow(bookId) {
   const res = await fetch(`/api/books/${bookId}/deliver-now`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({}),
   })
   return parseOrThrow(res)
 }
 
-export async function resetProgress(bookId, telegramId) {
+export async function resetProgress(bookId) {
   const res = await fetch(`/api/books/${bookId}/reset-progress`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({}),
   })
   return parseOrThrow(res)
 }
 
-export async function addAdmin(telegramId, username) {
+export async function addAdmin(username) {
   const res = await fetch('/api/admins', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, username }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ username }),
   })
   return parseOrThrow(res)
 }
 
-export async function removeAdmin(telegramId, targetTelegramId) {
+export async function removeAdmin(targetTelegramId) {
   const res = await fetch('/api/admins', {
     method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, targetTelegramId }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ targetTelegramId }),
   })
   return parseOrThrow(res)
 }
 
-export async function sendFeedback({ telegramId, username, message }) {
+export async function sendFeedback({ message }) {
   const res = await fetch('/api/feedback', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegramId, username, message }),
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ message }),
   })
   return parseOrThrow(res)
 }

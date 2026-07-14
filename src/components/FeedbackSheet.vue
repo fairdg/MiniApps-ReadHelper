@@ -1,7 +1,6 @@
 <script setup>
 import { ref, toRef } from 'vue'
 import { sendFeedback } from '../lib/api.js'
-import { getTelegramUser } from '../lib/telegramUser.js'
 import { blurOnOutsideTap } from '../lib/tapOutside.js'
 import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
 
@@ -28,8 +27,7 @@ async function submit() {
   error.value = ''
 
   try {
-    const { telegramId, username } = getTelegramUser()
-    await sendFeedback({ telegramId, username, message: message.value.trim() })
+    await sendFeedback({ message: message.value.trim() })
     message.value = ''
     sent.value = true
   } catch (err) {

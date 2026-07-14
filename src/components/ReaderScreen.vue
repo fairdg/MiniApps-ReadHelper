@@ -28,7 +28,7 @@ const emit = defineEmits(['back'])
 const admin = ref(isOwner(getTelegramUser().telegramId))
 const devMode = computed(() => isDevMode() && admin.value)
 
-checkAdmin(getTelegramUser().telegramId).then((result) => {
+checkAdmin().then((result) => {
   admin.value = result.isAdmin
 })
 
@@ -140,8 +140,7 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const { telegramId } = getTelegramUser()
-    const data = await getBookChunks(props.book.id, telegramId)
+    const data = await getBookChunks(props.book.id)
     chunks.value = data.chunks
     deliveredCount.value = data.deliveredCount
     notificationsPerDay.value = data.notificationsPerDay
@@ -170,8 +169,7 @@ async function changeTitle(value) {
   const previous = displayTitle.value
   displayTitle.value = value
   try {
-    const { telegramId } = getTelegramUser()
-    await updateBookTitle(props.book.id, telegramId, value)
+    await updateBookTitle(props.book.id, value)
   } catch (err) {
     displayTitle.value = previous
     error.value = err.message
@@ -181,8 +179,7 @@ async function changeTitle(value) {
 async function changeNotificationsPerDay(value) {
   notificationsPerDay.value = value
   try {
-    const { telegramId } = getTelegramUser()
-    await updateDeliveryFrequency(props.book.id, telegramId, value)
+    await updateDeliveryFrequency(props.book.id, value)
   } catch (err) {
     console.error('Не удалось обновить частоту уведомлений:', err)
   }
@@ -191,8 +188,7 @@ async function changeNotificationsPerDay(value) {
 async function changeDeliveryActive(value) {
   deliveryActive.value = value
   try {
-    const { telegramId } = getTelegramUser()
-    await updateDeliveryActive(props.book.id, telegramId, value)
+    await updateDeliveryActive(props.book.id, value)
   } catch (err) {
     console.error('Не удалось изменить статус доставки:', err)
   }
@@ -208,8 +204,7 @@ async function changeTargetWords(value) {
   if (!ok) return
 
   try {
-    const { telegramId } = getTelegramUser()
-    await updateChunkSize(props.book.id, telegramId, value)
+    await updateChunkSize(props.book.id, value)
     await load()
   } catch (err) {
     error.value = err.message
@@ -220,8 +215,7 @@ async function sendNow() {
   sendingNow.value = true
   sendNowError.value = ''
   try {
-    const { telegramId } = getTelegramUser()
-    const result = await deliverNow(props.book.id, telegramId)
+    const result = await deliverNow(props.book.id)
     if (result.sent) {
       await load()
     } else {
@@ -243,8 +237,7 @@ async function resetBookProgress() {
   resettingProgress.value = true
   sendNowError.value = ''
   try {
-    const { telegramId } = getTelegramUser()
-    await resetProgress(props.book.id, telegramId)
+    await resetProgress(props.book.id)
     await load()
   } catch (err) {
     sendNowError.value = err.message
