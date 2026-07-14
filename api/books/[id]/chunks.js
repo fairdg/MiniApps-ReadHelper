@@ -3,7 +3,7 @@ import { getBookById } from '../../../server/repositories/books.js'
 import { getChunksForBook } from '../../../server/repositories/chunks.js'
 import {
   getDeliveryForBook,
-  perDayFromIntervalMinutes,
+  notificationsPerDayFromDelivery,
 } from '../../../server/repositories/deliveries.js'
 
 export default async function handler(req, res) {
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     book,
     chunks,
     deliveredCount: delivery?.next_chunk_position ?? 0,
-    notificationsPerDay: perDayFromIntervalMinutes(delivery?.interval_minutes),
+    notificationsPerDay: notificationsPerDayFromDelivery(delivery),
     deliveryActive: delivery?.is_active ?? false,
   })
 }

@@ -3,8 +3,7 @@ import { getBookById } from '../../../server/repositories/books.js'
 import {
   updateDeliveryInterval,
   setDeliveryActive,
-  intervalMinutesFromPerDay,
-  perDayFromIntervalMinutes,
+  notificationsPerDayFromDelivery,
 } from '../../../server/repositories/deliveries.js'
 
 export default async function handler(req, res) {
@@ -29,10 +28,10 @@ export default async function handler(req, res) {
     return
   }
 
-  let intervalMinutes
+  let updatedPerDay
   if (notificationsPerDay != null) {
-    intervalMinutes = intervalMinutesFromPerDay(notificationsPerDay)
-    await updateDeliveryInterval(bookId, intervalMinutes, user.timezone)
+    await updateDeliveryInterval(bookId, notificationsPerDay, user.timezone)
+    updatedPerDay = notificationsPerDayFromDelivery({ notifications_per_day: notificationsPerDay })
   }
 
   if (isActive != null) {
@@ -40,7 +39,7 @@ export default async function handler(req, res) {
   }
 
   res.status(200).json({
-    ...(intervalMinutes != null && { notificationsPerDay: perDayFromIntervalMinutes(intervalMinutes) }),
+    ...(updatedPerDay != null && { notificationsPerDay: updatedPerDay }),
     ...(isActive != null && { isActive: Boolean(isActive) }),
   })
 }

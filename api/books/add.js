@@ -1,7 +1,7 @@
 import { upsertUser } from '../../server/repositories/users.js'
 import { createBook, markBookReady, markBookFailed } from '../../server/repositories/books.js'
 import { saveChunks } from '../../server/repositories/chunks.js'
-import { createDelivery, intervalMinutesFromPerDay } from '../../server/repositories/deliveries.js'
+import { createDelivery } from '../../server/repositories/deliveries.js'
 import { chunkBook, clampTargetWords } from '../../server/chunking.js'
 import { normalizeBookText, assertReadableText } from '../../server/textClean.js'
 import { extractArticle } from '../../server/articleExtractor.js'
@@ -63,7 +63,7 @@ export default async function handler(req, res) {
     const chunks = await chunkBook(cleanText, { targetWords: resolvedTargetWords })
     await saveChunks(book.id, chunks)
     await markBookReady(book.id)
-    const delivery = await createDelivery(book.id, intervalMinutesFromPerDay(notificationsPerDay))
+    const delivery = await createDelivery(book.id, notificationsPerDay, user.timezone)
     res.status(200).json({ book, chunkCount: chunks.length, delivery })
   } catch (err) {
     console.error('Failed to chunk book', err)
