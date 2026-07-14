@@ -5,6 +5,7 @@ const MIN_PER_DAY = 1
 const QUIET_START_HOUR = 23
 const QUIET_END_HOUR = 8
 const ACTIVE_MINUTES_PER_DAY = ((QUIET_START_HOUR - QUIET_END_HOUR + 24) % 24) * 60
+const CLAIM_LEASE_MINUTES = 10
 
 // Ограничено 14, чтобы не обещать частоту, которую невозможно честно
 // выдержать в окне 08:00-23:00.
@@ -117,6 +118,27 @@ export function nextScheduleBase({ scheduledAt, intervalMinutes, now = new Date(
   return now.getTime() - scheduledAt.getTime() > intervalMinutes * 60_000 ? now : scheduledAt
 }
 
+export function deliveryClaimUntil(now = new Date()) {
+  return new Date(now.getTime() + CLAIM_LEASE_MINUTES * 60_000)
+}
+
+function withClaimMeta(delivery, previousNextSendAt, claimedUntil) {
+  return {
+    ...delivery,
+    _claim: {
+      previousNextSendAt,
+      claimedUntil,
+    },
+  }
+}
+
+function claimGuard(delivery) {
+  const previousNextSendAt = delivery._claim?.previousNextSendAt
+  const claimedUntil = delivery._claim?.claimedUntil
+  if (!previousNextSendAt || !claimedUntil) return null
+  return { previousNextSendAt, claimedUntil }
+}
+
 export async function createDelivery(bookId, notificationsPerDay = 4, timezone) {
   const sql = getDb()
   const perDay = clampPerDay(notificationsPerDay)
@@ -142,13 +164,73 @@ export async function getDueDeliveries(now = new Date()) {
   return due.filter((delivery) => !isQuietHours(now, delivery.timezone))
 }
 
+export async function claimDelivery(delivery, { now = new Date(), force = false } = {}) {
+  const sql = getDb()
+  const previousNextSendAt = new Date(delivery.next_send_at)
+  const claimedUntil = deliveryClaimUntil(now)
+
+  const [claimed] = force
+    ? await sql`
+        update deliveries
+        set next_send_at = ${claimedUntil}
+        where id = ${delivery.id}
+          and is_active = true
+          and next_chunk_position = ${delivery.next_chunk_position}
+          and next_send_at = ${previousNextSendAt}
+        returning *
+      `
+    : await sql`
+        update deliveries
+        set next_send_at = ${claimedUntil}
+        where id = ${delivery.id}
+          and is_active = true
+          and next_chunk_position = ${delivery.next_chunk_position}
+          and next_send_at = ${previousNextSendAt}
+          and next_send_at <= ${now}
+        returning *
+      `
+
+  return claimed ? withClaimMeta(claimed, previousNextSendAt, claimedUntil) : null
+}
+
+export async function releaseDeliveryClaim(delivery) {
+  const guard = claimGuard(delivery)
+  if (!guard) return
+
+  const sql = getDb()
+  await sql`
+    update deliveries
+    set next_send_at = ${guard.previousNextSendAt}
+    where id = ${delivery.id}
+      and is_active = true
+      and next_chunk_position = ${delivery.next_chunk_position}
+      and next_send_at = ${guard.claimedUntil}
+  `
+}
+
 export async function advanceDelivery(delivery, nextPosition, now = new Date()) {
   const sql = getDb()
   const perDay = notificationsPerDayFromDelivery(delivery)
   const intervalMinutes = intervalMinutesFromPerDay(perDay)
-  const scheduledAt = delivery.next_send_at ? new Date(delivery.next_send_at) : now
+  const guard = claimGuard(delivery)
+  const scheduledAt = guard?.previousNextSendAt ?? (delivery.next_send_at ? new Date(delivery.next_send_at) : now)
   const base = nextScheduleBase({ scheduledAt, intervalMinutes, now })
   const nextSendAt = avoidQuietHours(new Date(base.getTime() + intervalMinutes * 60_000), delivery.timezone)
+
+  if (guard) {
+    await sql`
+      update deliveries
+      set next_chunk_position = ${nextPosition},
+          interval_minutes = ${intervalMinutes},
+          notifications_per_day = ${perDay},
+          next_send_at = ${nextSendAt}
+      where id = ${delivery.id}
+        and next_chunk_position = ${delivery.next_chunk_position}
+        and next_send_at = ${guard.claimedUntil}
+    `
+    return
+  }
+
   await sql`
     update deliveries
     set next_chunk_position = ${nextPosition},
@@ -162,8 +244,32 @@ export async function advanceDelivery(delivery, nextPosition, now = new Date()) 
 // nextPosition необязателен: передаём его при завершении книги (последний
 // чанк только что отправлен), чтобы прогресс в UI показывал "всё прочитано",
 // а не застревал на предпоследней порции.
-export async function deactivateDelivery(deliveryId, nextPosition) {
+export async function deactivateDelivery(deliveryOrId, nextPosition) {
   const sql = getDb()
+  const deliveryId = typeof deliveryOrId === 'object' ? deliveryOrId.id : deliveryOrId
+  const guard = typeof deliveryOrId === 'object' ? claimGuard(deliveryOrId) : null
+
+  if (guard) {
+    if (nextPosition == null) {
+      await sql`
+        update deliveries
+        set is_active = false
+        where id = ${deliveryId}
+          and next_chunk_position = ${deliveryOrId.next_chunk_position}
+          and next_send_at = ${guard.claimedUntil}
+      `
+    } else {
+      await sql`
+        update deliveries
+        set is_active = false, next_chunk_position = ${nextPosition}
+        where id = ${deliveryId}
+          and next_chunk_position = ${deliveryOrId.next_chunk_position}
+          and next_send_at = ${guard.claimedUntil}
+      `
+    }
+    return
+  }
+
   if (nextPosition == null) {
     await sql`update deliveries set is_active = false where id = ${deliveryId}`
   } else {
