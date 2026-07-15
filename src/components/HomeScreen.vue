@@ -8,6 +8,7 @@ import AdminSheet from './AdminSheet.vue'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
 import FeedbackSheet from './FeedbackSheet.vue'
+import IconAdmin from './icons/IconAdmin.vue'
 import IconGear from './icons/IconGear.vue'
 import IconDocument from './icons/IconDocument.vue'
 import IconTrash from './icons/IconTrash.vue'
@@ -125,11 +126,11 @@ onMounted(load)
       <div class="header-actions">
         <button
           v-if="admin"
-          class="admin-btn"
+          class="icon-btn"
           aria-label="Служебная панель"
           @click="adminSheetOpen = true"
         >
-          Админ
+          <IconAdmin />
         </button>
         <button class="icon-btn" aria-label="Настройки" @click="appSettingsOpen = true">
           <IconGear />
@@ -228,18 +229,6 @@ onMounted(load)
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-}
-
-.admin-btn {
-  border: none;
-  background: var(--button);
-  color: var(--button-text);
-  height: 40px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0 12px;
   cursor: pointer;
 }
 
