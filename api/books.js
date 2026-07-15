@@ -1,11 +1,11 @@
-import { requireAuth } from '../../server/auth.js'
-import { isAdmin } from '../../server/adminAccess.js'
-import { getDb } from '../../server/db.js'
-import { deliverNextChunk } from '../../server/delivery.js'
-import { extractArticle } from '../../server/articleExtractor.js'
-import { chunkBook, clampTargetWords } from '../../server/chunking.js'
-import { normalizeBookText, assertReadableText } from '../../server/textClean.js'
-import { assertCanAddBook } from '../../server/billing.js'
+import { requireAuth } from '../server/auth.js'
+import { isAdmin } from '../server/adminAccess.js'
+import { getDb } from '../server/db.js'
+import { deliverNextChunk } from '../server/delivery.js'
+import { extractArticle } from '../server/articleExtractor.js'
+import { chunkBook, clampTargetWords } from '../server/chunking.js'
+import { normalizeBookText, assertReadableText } from '../server/textClean.js'
+import { assertCanAddBook } from '../server/billing.js'
 import {
   createBook,
   markBookReady,
@@ -15,9 +15,9 @@ import {
   updateTitle,
   listBooksWithProgress,
   countActiveBooksByUser,
-} from '../../server/repositories/books.js'
-import { getUserByTelegramId, upsertUser } from '../../server/repositories/users.js'
-import { saveChunks, getChunksForBook } from '../../server/repositories/chunks.js'
+} from '../server/repositories/books.js'
+import { getUserByTelegramId, upsertUser } from '../server/repositories/users.js'
+import { saveChunks, getChunksForBook } from '../server/repositories/chunks.js'
 import {
   createDelivery,
   getDeliveryForBook,
@@ -27,14 +27,7 @@ import {
   claimDelivery,
   releaseDeliveryClaim,
   resetProgress,
-} from '../../server/repositories/deliveries.js'
-
-function getSlug(req) {
-  const value = req.query.slug
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string' && value) return [value]
-  return []
-}
+} from '../server/repositories/deliveries.js'
 
 function parseBookId(raw) {
   const bookId = Number(raw)
@@ -343,50 +336,50 @@ export default async function handler(req, res) {
   const auth = requireAuth(req, res)
   if (!auth) return
 
-  const slug = getSlug(req)
+  const action = req.query.action
 
-  if (slug.length === 1 && slug[0] === 'add') {
+  if (action === 'add') {
     if (req.method !== 'POST') return res.status(405).end()
     return handleAddBook(req, res, auth)
   }
 
-  if (slug.length === 1 && slug[0] === 'list') {
+  if (action === 'list') {
     if (req.method !== 'GET') return res.status(405).end()
     return handleListBooks(res, auth)
   }
 
-  const bookId = parseBookId(slug[0])
+  const bookId = parseBookId(req.query.id)
   if (!bookId) {
     res.status(404).json({ error: 'Маршрут не найден' })
     return
   }
 
-  if (slug.length === 1) {
+  if (action === 'root') {
     if (req.method !== 'DELETE' && req.method !== 'PATCH') return res.status(405).end()
     return handleBookRoot(req, res, auth, bookId)
   }
 
-  if (slug.length === 2 && slug[1] === 'chunks') {
+  if (action === 'chunks') {
     if (req.method !== 'GET') return res.status(405).end()
     return handleChunks(res, auth, bookId)
   }
 
-  if (slug.length === 2 && slug[1] === 'delivery') {
+  if (action === 'delivery') {
     if (req.method !== 'PATCH') return res.status(405).end()
     return handleDelivery(req, res, auth, bookId)
   }
 
-  if (slug.length === 2 && slug[1] === 'chunk-size') {
+  if (action === 'chunk-size') {
     if (req.method !== 'PATCH') return res.status(405).end()
     return handleChunkSize(req, res, auth, bookId)
   }
 
-  if (slug.length === 2 && slug[1] === 'deliver-now') {
+  if (action === 'deliver-now') {
     if (req.method !== 'POST') return res.status(405).end()
     return handleDeliverNow(res, auth, bookId)
   }
 
-  if (slug.length === 2 && slug[1] === 'reset-progress') {
+  if (action === 'reset-progress') {
     if (req.method !== 'POST') return res.status(405).end()
     return handleResetProgress(res, auth, bookId)
   }

@@ -1,22 +1,15 @@
-import { requireAuth } from '../../server/auth.js'
-import { isOwner } from '../../server/adminAccess.js'
-import { buildProInvoice, buildProInvoicePayload, getBillingSnapshot } from '../../server/billing.js'
-import { createInvoiceLink } from '../../server/telegram.js'
+import { requireAuth } from '../server/auth.js'
+import { isOwner } from '../server/adminAccess.js'
+import { buildProInvoice, buildProInvoicePayload, getBillingSnapshot } from '../server/billing.js'
+import { createInvoiceLink } from '../server/telegram.js'
 import {
   getUserByTelegramId,
   upsertUser,
   getUserByUsername,
   listProUsers,
   setBillingPlan,
-} from '../../server/repositories/users.js'
-import { countActiveBooksByUser } from '../../server/repositories/books.js'
-
-function getAction(req) {
-  const value = req.query.action
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string' && value) return [value]
-  return []
-}
+} from '../server/repositories/users.js'
+import { countActiveBooksByUser } from '../server/repositories/books.js'
 
 async function getOrCreateUser(auth) {
   let user = await getUserByTelegramId(auth.telegramId)
@@ -107,23 +100,19 @@ export default async function handler(req, res) {
   const auth = requireAuth(req, res)
   if (!auth) return
 
-  const action = getAction(req)
-  if (action.length !== 1) {
-    res.status(404).json({ error: 'Маршрут не найден' })
-    return
-  }
+  const action = req.query.action
 
-  if (action[0] === 'status') {
+  if (action === 'status') {
     if (req.method !== 'GET') return res.status(405).end()
     return handleStatus(res, auth)
   }
 
-  if (action[0] === 'invoice') {
+  if (action === 'invoice') {
     if (req.method !== 'POST') return res.status(405).end()
     return handleInvoice(res, auth)
   }
 
-  if (action[0] === 'grants') {
+  if (action === 'grants') {
     return handleGrants(req, res, auth)
   }
 

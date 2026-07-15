@@ -10,3 +10,4 @@ build/
 *.local
 *.local.md
 DEVLOG.local.md
+AGENTS.md

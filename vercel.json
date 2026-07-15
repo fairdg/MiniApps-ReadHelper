@@ -1,4 +1,17 @@
 {
+  "rewrites": [
+    { "source": "/api/books/add", "destination": "/api/books?action=add" },
+    { "source": "/api/books/list", "destination": "/api/books?action=list" },
+    { "source": "/api/books/:id/chunks", "destination": "/api/books?action=chunks&id=:id" },
+    { "source": "/api/books/:id/delivery", "destination": "/api/books?action=delivery&id=:id" },
+    { "source": "/api/books/:id/chunk-size", "destination": "/api/books?action=chunk-size&id=:id" },
+    { "source": "/api/books/:id/deliver-now", "destination": "/api/books?action=deliver-now&id=:id" },
+    { "source": "/api/books/:id/reset-progress", "destination": "/api/books?action=reset-progress&id=:id" },
+    { "source": "/api/books/:id", "destination": "/api/books?action=root&id=:id" },
+    { "source": "/api/billing/status", "destination": "/api/billing?action=status" },
+    { "source": "/api/billing/invoice", "destination": "/api/billing?action=invoice" },
+    { "source": "/api/billing/grants", "destination": "/api/billing?action=grants" }
+  ],
   "crons": [
     { "path": "/api/cron/deliver", "schedule": "0 9 * * *" }
   ]
