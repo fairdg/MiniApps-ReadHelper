@@ -6,6 +6,8 @@ import { chunkBook, clampTargetWords } from '../../server/chunking.js'
 import { normalizeBookText, assertReadableText } from '../../server/textClean.js'
 import { extractArticle } from '../../server/articleExtractor.js'
 import { requireAuth } from '../../server/auth.js'
+import { assertCanAddBook } from '../../server/billing.js'
+import { countActiveBooksByUser } from '../../server/repositories/books.js'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -55,6 +57,13 @@ export default async function handler(req, res) {
   const resolvedTargetWords = clampTargetWords(targetWords)
 
   const user = await upsertUser({ telegramId: auth.telegramId, username: auth.username, timezone })
+  const activeBookCount = await countActiveBooksByUser(user.id)
+  try {
+    assertCanAddBook(user, activeBookCount)
+  } catch (err) {
+    res.status(402).json({ error: err.message, code: err.code })
+    return
+  }
   const book = await createBook({
     userId: user.id,
     title: sourceTitle,

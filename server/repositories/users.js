@@ -40,3 +40,41 @@ export async function listAdmins() {
   const sql = getDb()
   return sql`select telegram_id, username from users where is_admin = true order by username`
 }
+
+export async function activateProPlan(telegramId) {
+  const sql = getDb()
+  const [user] = await sql`
+    update users
+    set billing_plan = 'pro',
+        billing_plan_activated_at = coalesce(billing_plan_activated_at, now())
+    where telegram_id = ${telegramId}
+    returning *
+  `
+  return user ?? null
+}
+
+export async function setBillingPlan(telegramId, billingPlan) {
+  const sql = getDb()
+  const [user] = await sql`
+    update users
+    set billing_plan = ${billingPlan},
+        billing_plan_activated_at =
+          case
+            when ${billingPlan} = 'pro' then coalesce(billing_plan_activated_at, now())
+            else null
+          end
+    where telegram_id = ${telegramId}
+    returning *
+  `
+  return user ?? null
+}
+
+export async function listProUsers() {
+  const sql = getDb()
+  return sql`
+    select telegram_id, username, billing_plan_activated_at
+    from users
+    where billing_plan = 'pro'
+    order by billing_plan_activated_at desc nulls last, username
+  `
+}

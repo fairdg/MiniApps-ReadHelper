@@ -4,11 +4,15 @@ create table if not exists users (
   username text,
   timezone text, -- IANA-таймзона (напр. "Asia/Tomsk"), из Intl на фронте
   is_admin boolean not null default false, -- владелец (OWNER_TELEGRAM_ID) admin всегда, независимо от этого поля
+  billing_plan text not null default 'free', -- free | pro
+  billing_plan_activated_at timestamptz,
   created_at timestamptz not null default now()
 );
 
 alter table users add column if not exists timezone text;
 alter table users add column if not exists is_admin boolean not null default false;
+alter table users add column if not exists billing_plan text not null default 'free';
+alter table users add column if not exists billing_plan_activated_at timestamptz;
 
 create table if not exists books (
   id bigserial primary key,
@@ -60,5 +64,20 @@ create table if not exists feedback (
   created_at timestamptz not null default now()
 );
 
+create table if not exists payments (
+  id bigserial primary key,
+  user_id bigint references users(id) on delete set null,
+  kind text not null, -- pro_upgrade
+  status text not null default 'paid', -- paid
+  currency text not null,
+  total_amount int not null,
+  invoice_payload text not null,
+  telegram_payment_charge_id text unique not null,
+  provider_payment_charge_id text,
+  raw_payment jsonb,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_chunks_book on chunks(book_id);
 create index if not exists idx_deliveries_due on deliveries(is_active, next_send_at);
+create index if not exists idx_payments_user on payments(user_id, created_at desc);

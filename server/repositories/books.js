@@ -67,3 +67,27 @@ export async function listBooksWithProgress(userId) {
     order by b.created_at desc
   `
 }
+
+export async function countActiveBooksByUser(userId) {
+  const sql = getDb()
+  const [result] = await sql`
+    select count(*)::int as count
+    from (
+      select
+        b.id,
+        b.status,
+        coalesce(c.total, 0)::int as total_chunks,
+        coalesce(d.next_chunk_position, 0)::int as read_chunks
+      from books b
+      left join (
+        select book_id, count(*) as total from chunks group by book_id
+      ) c on c.book_id = b.id
+      left join deliveries d on d.book_id = b.id
+      where b.user_id = ${userId}
+    ) books_with_progress
+    where status <> 'ready'
+      or total_chunks = 0
+      or read_chunks < total_chunks
+  `
+  return result?.count ?? 0
+}
