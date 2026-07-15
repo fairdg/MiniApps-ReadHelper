@@ -4,6 +4,7 @@ import { listBooks, deleteBook } from '../lib/api.js'
 import { getTelegramUser } from '../lib/telegramUser.js'
 import { isDevMode, setDevMode, isOwner, checkAdmin } from '../lib/devMode.js'
 import { confirmDialog } from '../lib/confirm.js'
+import AdminSheet from './AdminSheet.vue'
 import AddBookSheet from './AddBookSheet.vue'
 import AppSettingsSheet from './AppSettingsSheet.vue'
 import FeedbackSheet from './FeedbackSheet.vue'
@@ -18,6 +19,7 @@ const loading = ref(true)
 const error = ref('')
 const addSheetOpen = ref(false)
 const appSettingsOpen = ref(false)
+const adminSheetOpen = ref(false)
 const feedbackOpen = ref(false)
 const devMode = ref(isDevMode())
 // Мгновенно по env (только для настоящего владельца), пока не пришёл ответ
@@ -121,6 +123,14 @@ onMounted(load)
         </button>
       </div>
       <div class="header-actions">
+        <button
+          v-if="admin"
+          class="admin-btn"
+          aria-label="Служебная панель"
+          @click="adminSheetOpen = true"
+        >
+          Админ
+        </button>
         <button class="icon-btn" aria-label="Настройки" @click="appSettingsOpen = true">
           <IconGear />
         </button>
@@ -168,12 +178,16 @@ onMounted(load)
     <AddBookSheet :open="addSheetOpen" @close="addSheetOpen = false" @added="load" />
     <AppSettingsSheet
       :open="appSettingsOpen"
+      @close="appSettingsOpen = false"
+      @open-feedback="openFeedback"
+    />
+    <AdminSheet
+      :open="adminSheetOpen"
       :dev-mode="devMode"
       :admin="admin"
       :owner="owner"
-      @close="appSettingsOpen = false"
+      @close="adminSheetOpen = false"
       @update:dev-mode="changeDevMode"
-      @open-feedback="openFeedback"
     />
     <FeedbackSheet :open="feedbackOpen" @close="feedbackOpen = false" />
   </section>
@@ -214,6 +228,18 @@ onMounted(load)
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer;
+}
+
+.admin-btn {
+  border: none;
+  background: var(--button);
+  color: var(--button-text);
+  height: 40px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 0 12px;
   cursor: pointer;
 }
 

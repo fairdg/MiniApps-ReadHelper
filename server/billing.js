@@ -16,8 +16,13 @@ export function getFreeActiveBooksLimit() {
   return FREE_ACTIVE_BOOKS_LIMIT
 }
 
+export function isBillingOwner(user) {
+  const ownerId = process.env.OWNER_TELEGRAM_ID
+  return Boolean(ownerId) && String(user?.telegram_id) === ownerId
+}
+
 export function getBillingSnapshot(user, activeBookCount) {
-  const plan = user?.billing_plan === 'pro' ? 'pro' : 'free'
+  const plan = user?.billing_plan === 'pro' || isBillingOwner(user) ? 'pro' : 'free'
   const freeLimit = getFreeActiveBooksLimit()
   const hasPro = plan === 'pro'
   return {

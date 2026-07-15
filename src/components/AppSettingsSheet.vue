@@ -2,45 +2,19 @@
 import { ref, toRef, watch } from 'vue'
 import IconFeedback from './icons/IconFeedback.vue'
 import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
-import {
-  addAdmin,
-  createProInvoice,
-  getBillingStatus,
-  grantProByUsername,
-  listGrantedProUsers,
-  removeAdmin,
-  revokePro,
-} from '../lib/api.js'
-import { checkAdmin } from '../lib/devMode.js'
+import { createProInvoice, getBillingStatus } from '../lib/api.js'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
-  devMode: { type: Boolean, required: true },
-  admin: { type: Boolean, default: false },
-  owner: { type: Boolean, default: false },
 })
 
 useBodyScrollLock(toRef(props, 'open'))
 
-const emit = defineEmits(['close', 'update:devMode', 'open-feedback'])
+const emit = defineEmits(['close', 'open-feedback'])
 
-const admins = ref([])
-const newAdminUsername = ref('')
-const adminError = ref('')
-const adminBusy = ref(false)
 const billing = ref(null)
 const billingError = ref('')
 const billingBusy = ref(false)
-const proUsers = ref([])
-const newProUsername = ref('')
-const proBusy = ref(false)
-const proError = ref('')
-
-async function loadAdmins() {
-  if (!props.owner) return
-  const result = await checkAdmin()
-  admins.value = result.admins ?? []
-}
 
 async function loadBilling() {
   billingError.value = ''
@@ -48,17 +22,6 @@ async function loadBilling() {
     billing.value = await getBillingStatus()
   } catch (err) {
     billingError.value = err.message
-  }
-}
-
-async function loadProUsers() {
-  if (!props.owner) return
-  proError.value = ''
-  try {
-    const result = await listGrantedProUsers()
-    proUsers.value = result.users ?? []
-  } catch (err) {
-    proError.value = err.message
   }
 }
 
@@ -87,41 +50,9 @@ watch(
   () => props.open,
   (isOpen) => {
     if (!isOpen) return
-    loadAdmins()
     loadBilling()
-    loadProUsers()
   },
 )
-
-async function submitAddAdmin() {
-  const username = newAdminUsername.value.trim()
-  if (!username) return
-
-  adminBusy.value = true
-  adminError.value = ''
-  try {
-    await addAdmin(username)
-    newAdminUsername.value = ''
-    await loadAdmins()
-  } catch (err) {
-    adminError.value = err.message
-  } finally {
-    adminBusy.value = false
-  }
-}
-
-async function submitRemoveAdmin(adminEntry) {
-  adminBusy.value = true
-  adminError.value = ''
-  try {
-    await removeAdmin(adminEntry.telegram_id)
-    admins.value = admins.value.filter((a) => a.telegram_id !== adminEntry.telegram_id)
-  } catch (err) {
-    adminError.value = err.message
-  } finally {
-    adminBusy.value = false
-  }
-}
 
 async function submitUpgrade() {
   billingBusy.value = true
@@ -142,36 +73,6 @@ async function submitUpgrade() {
     billingError.value = err.message
   } finally {
     billingBusy.value = false
-  }
-}
-
-async function submitGrantPro() {
-  const username = newProUsername.value.trim()
-  if (!username) return
-
-  proBusy.value = true
-  proError.value = ''
-  try {
-    await grantProByUsername(username)
-    newProUsername.value = ''
-    await loadProUsers()
-  } catch (err) {
-    proError.value = err.message
-  } finally {
-    proBusy.value = false
-  }
-}
-
-async function submitRevokePro(user) {
-  proBusy.value = true
-  proError.value = ''
-  try {
-    await revokePro(user.telegram_id)
-    proUsers.value = proUsers.value.filter((entry) => entry.telegram_id !== user.telegram_id)
-  } catch (err) {
-    proError.value = err.message
-  } finally {
-    proBusy.value = false
   }
 }
 </script>
@@ -213,87 +114,6 @@ async function submitRevokePro(user) {
       </button>
     </section>
     <p v-if="billingError" class="error">{{ billingError }}</p>
-
-    <template v-if="admin">
-      <div class="setting-row">
-        <span>Режим разработчика</span>
-        <div class="segmented">
-          <button
-            class="seg-btn"
-            :class="{ active: !devMode }"
-            @click="emit('update:devMode', false)"
-          >
-            Выкл
-          </button>
-          <button
-            class="seg-btn"
-            :class="{ active: devMode }"
-            @click="emit('update:devMode', true)"
-          >
-            Вкл
-          </button>
-        </div>
-      </div>
-
-      <p v-if="devMode" class="hint">
-        В режиме разработчика на экране чтения появится кнопка "Отправить порцию сейчас" — для
-        проверки доставки без ожидания реального интервала.
-      </p>
-    </template>
-
-    <template v-if="owner">
-      <h3 class="section-title">Подписки Pro</h3>
-
-      <ul v-if="proUsers.length" class="admin-list">
-        <li v-for="user in proUsers" :key="user.telegram_id" class="admin-item">
-          <span>@{{ user.username || user.telegram_id }}</span>
-          <button class="remove-btn" :disabled="proBusy" @click="submitRevokePro(user)">
-            Убрать
-          </button>
-        </li>
-      </ul>
-      <p v-else class="hint">Пока ни у кого нет активного Pro.</p>
-
-      <form class="admin-form" @submit.prevent="submitGrantPro">
-        <input
-          v-model="newProUsername"
-          class="admin-input"
-          type="text"
-          placeholder="username без @"
-        />
-        <button class="add-btn" type="submit" :disabled="proBusy || !newProUsername.trim()">
-          Выдать Pro
-        </button>
-      </form>
-      <p class="hint">Список включает всех пользователей с активным Pro. Выдать подписку можно только тому, кто уже хоть раз открывал приложение.</p>
-      <p v-if="proError" class="error">{{ proError }}</p>
-
-      <h3 class="section-title">Админы</h3>
-
-      <ul v-if="admins.length" class="admin-list">
-        <li v-for="a in admins" :key="a.telegram_id" class="admin-item">
-          <span>@{{ a.username || a.telegram_id }}</span>
-          <button class="remove-btn" :disabled="adminBusy" @click="submitRemoveAdmin(a)">
-            Убрать
-          </button>
-        </li>
-      </ul>
-      <p v-else class="hint">Пока нет назначенных админов.</p>
-
-      <form class="admin-form" @submit.prevent="submitAddAdmin">
-        <input
-          v-model="newAdminUsername"
-          class="admin-input"
-          type="text"
-          placeholder="username без @"
-        />
-        <button class="add-btn" type="submit" :disabled="adminBusy || !newAdminUsername.trim()">
-          Добавить
-        </button>
-      </form>
-      <p class="hint">Добавить можно только того, кто уже хоть раз открывал это приложение.</p>
-      <p v-if="adminError" class="error">{{ adminError }}</p>
-    </template>
   </div>
 </template>
 
@@ -396,116 +216,11 @@ async function submitRevokePro(user) {
   opacity: 0.6;
 }
 
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  font-size: 15px;
-}
-
-.segmented {
-  display: flex;
-  background: var(--secondary-bg);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-}
-
-.seg-btn {
-  border: none;
-  background: none;
-  color: var(--text);
-  font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.seg-btn.active {
-  background: var(--button);
-  color: var(--button-text);
-}
-
 .hint {
   font-size: 13px;
   color: var(--hint);
   margin: 4px 0 0;
   line-height: 1.4;
-}
-
-.section-title {
-  font-size: 13px;
-  margin: 18px 0 8px;
-  color: var(--hint);
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.admin-list {
-  list-style: none;
-  margin: 0 0 10px;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.admin-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--secondary-bg);
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 14px;
-}
-
-.remove-btn {
-  border: none;
-  background: none;
-  color: #e5484d;
-  font-size: 12px;
-  font-weight: 600;
-  padding: 6px 8px;
-  cursor: pointer;
-}
-
-.admin-form {
-  display: flex;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.admin-input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: var(--secondary-bg);
-  color: var(--text);
-  /* 16px — минимум, ниже которого iOS Safari сам зумит страницу при фокусе */
-  font-size: 16px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  height: 40px;
-}
-
-.add-btn {
-  flex-shrink: 0;
-  border: none;
-  background: var(--button);
-  color: var(--button-text);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 0 16px;
-  height: 40px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-.add-btn:disabled {
-  opacity: 0.5;
 }
 
 .error {

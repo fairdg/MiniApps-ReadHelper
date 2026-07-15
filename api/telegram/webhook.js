@@ -16,24 +16,48 @@ function openAppKeyboard() {
 const HELP_TEXT = [
   'ReadHelper дробит книгу или статью на небольшие порции и присылает их сюда по расписанию — чтобы читать понемногу, не теряя фокус.',
   '',
-  'Тарифы:',
-  '• бесплатно — 1 книга в процессе,',
-  '• ReadHelper Pro — снимает лимит на количество книг в процессе.',
+  'Команды:',
+  '/start — открыть приложение',
+  '/add — как добавить книгу, текст или статью',
+  '/schedule — как работает расписание',
+  '/limits — лимиты бесплатного тарифа',
+  '/pro — что даёт ReadHelper Pro',
+  '/support — поддержка по оплате и сервису',
+  '/terms — условия ReadHelper Pro',
+  '/privacy — данные и приватность',
+].join('\n')
+
+const ADD_TEXT = [
+  'Как добавить текст:',
+  '1. Открой мини-приложение.',
+  '2. Нажми "+".',
+  '3. Вставь текст вручную, загрузи .txt/.md файл или вставь ссылку на статью.',
   '',
-  'Как добавить текст (в мини-приложении, кнопка "+"):',
-  '• вставить текст вручную,',
-  '• загрузить .txt/.md файл,',
-  '• или просто вставить ссылку на статью — текст подтянется автоматически.',
+  'Для ссылок ReadHelper попробует сам вытащить название и основной текст статьи.',
+].join('\n')
+
+const SCHEDULE_TEXT = [
+  'Как работает расписание:',
+  '• у каждой книги можно выбрать 1-14 уведомлений в день,',
+  '• доставка не приходит ночью: 23:00-08:00 по твоему времени,',
+  '• книгу можно поставить на паузу и потом снова включить,',
+  '• размер порции меняется в настройках книги на экране чтения.',
+].join('\n')
+
+const LIMITS_TEXT = [
+  'Лимиты:',
+  '• бесплатный тариф — 1 книга в процессе,',
+  '• завершённые книги не мешают читать следующую,',
+  '• ReadHelper Pro снимает лимит на количество книг в процессе.',
+].join('\n')
+
+const PRO_TEXT = [
+  'ReadHelper Pro:',
+  '• снимает лимит на количество книг в процессе,',
+  '• активируется для текущего Telegram-аккаунта,',
+  '• покупается один раз через Telegram Stars.',
   '',
-  'Что можно настроить у каждой книги (шестерёнка на экране чтения):',
-  '• сколько уведомлений в день присылать (1-14),',
-  '• поставить доставку на паузу и снять с неё,',
-  '• размер шрифта.',
-  '',
-  'Порции не приходят ночью (23:00-08:00 по твоему времени) — доставка сама сдвигается на утро.',
-  'Ненужную книгу можно удалить из списка (иконка корзины).',
-  '',
-  'Команды: /start — открыть приложение, /help — это сообщение, /support — поддержка, /terms — условия.',
+  'Купить Pro можно в мини-приложении: Настройки приложения → карточка тарифа.',
 ].join('\n')
 
 const TERMS_TEXT = [
@@ -46,6 +70,19 @@ const TERMS_TEXT = [
 
 const SUPPORT_TEXT =
   'Поддержка ReadHelper: открой мини-приложение → Настройки → Оставить отзыв. Если покупка прошла, но Pro не активировался, напиши с этого же Telegram-аккаунта и приложи скрин квитанции.'
+
+const PRIVACY_TEXT = [
+  'Данные ReadHelper:',
+  '• хранит твой Telegram id, username и книги, которые ты добавляешь,',
+  '• использует timezone, чтобы не слать порции ночью,',
+  '• платежи обрабатываются через Telegram Stars,',
+  '• удалить книгу можно из списка в мини-приложении.',
+].join('\n')
+
+function parseCommand(text) {
+  if (!text?.startsWith('/')) return null
+  return text.trim().split(/\s+/)[0].split('@')[0]
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -104,18 +141,30 @@ export default async function handler(req, res) {
     return
   }
 
-  if (message.text === '/start') {
+  const command = parseCommand(message.text)
+
+  if (command === '/start') {
     await sendMessage(
       chatId,
       'Привет! Я помогу тебе читать книги маленькими порциями, чтобы не терять фокус. Открой мини-приложение, чтобы добавить книгу.',
       { reply_markup: openAppKeyboard() },
     )
-  } else if (message.text === '/help') {
+  } else if (command === '/help') {
     await sendMessage(chatId, HELP_TEXT, { reply_markup: openAppKeyboard() })
-  } else if (message.text === '/support') {
+  } else if (command === '/add') {
+    await sendMessage(chatId, ADD_TEXT, { reply_markup: openAppKeyboard() })
+  } else if (command === '/schedule') {
+    await sendMessage(chatId, SCHEDULE_TEXT, { reply_markup: openAppKeyboard() })
+  } else if (command === '/limits') {
+    await sendMessage(chatId, LIMITS_TEXT, { reply_markup: openAppKeyboard() })
+  } else if (command === '/pro') {
+    await sendMessage(chatId, PRO_TEXT, { reply_markup: openAppKeyboard() })
+  } else if (command === '/support') {
     await sendMessage(chatId, SUPPORT_TEXT, { reply_markup: openAppKeyboard() })
-  } else if (message.text === '/terms') {
+  } else if (command === '/terms') {
     await sendMessage(chatId, TERMS_TEXT, { reply_markup: openAppKeyboard() })
+  } else if (command === '/privacy') {
+    await sendMessage(chatId, PRIVACY_TEXT, { reply_markup: openAppKeyboard() })
   }
 
   res.status(200).end()
