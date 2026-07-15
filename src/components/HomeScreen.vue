@@ -113,14 +113,14 @@ onMounted(load)
           :class="{ active: activeTab === 'inProgress' }"
           @click="activeTab = 'inProgress'"
         >
-          В процессе ({{ booksInProgress.length }})
+          В процессе
         </button>
         <button
           class="tab-btn"
           :class="{ active: activeTab === 'done' }"
           @click="activeTab = 'done'"
         >
-          Завершено ({{ booksDone.length }})
+          Завершено
         </button>
       </div>
       <div class="header-actions">
@@ -235,6 +235,7 @@ onMounted(load)
 .tabs {
   display: flex;
   gap: 8px;
+  min-width: 0;
 }
 
 .tab-btn {
@@ -243,9 +244,11 @@ onMounted(load)
   color: var(--hint);
   font-size: 13px;
   font-weight: 500;
-  padding: 8px 14px;
+  height: 40px;
+  padding: 0 12px;
   border-radius: 10px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .tab-btn.active {

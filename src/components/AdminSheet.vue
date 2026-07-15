@@ -151,13 +151,10 @@ async function submitRevokePro(user) {
     </template>
 
     <template v-if="owner">
-      <section class="owner-note">
-        <p class="note-title">Владелец</p>
-        <p class="hint">
-          Владелец из OWNER_TELEGRAM_ID получает служебный доступ и Pro автоматически. Себе ничего
-          отдельно выдавать не нужно.
-        </p>
-      </section>
+      <div class="role-row">
+        <span>Роль</span>
+        <span class="role-badge">Владелец</span>
+      </div>
 
       <h3 class="section-title">Подписки Pro</h3>
 
@@ -286,18 +283,21 @@ async function submitRevokePro(user) {
   color: var(--button-text);
 }
 
-.owner-note {
-  background: linear-gradient(135deg, rgba(41, 98, 255, 0.1), rgba(31, 184, 205, 0.14));
-  border: 1px solid rgba(41, 98, 255, 0.12);
-  border-radius: 14px;
-  padding: 12px 14px;
-  margin: 12px 0 4px;
+.role-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  font-size: 15px;
 }
 
-.note-title {
-  margin: 0 0 4px;
-  font-size: 14px;
+.role-badge {
+  background: var(--button);
+  color: var(--button-text);
+  border-radius: 999px;
+  font-size: 12px;
   font-weight: 600;
+  padding: 6px 10px;
 }
 
 .hint {
