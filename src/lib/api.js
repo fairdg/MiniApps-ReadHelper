@@ -137,3 +137,44 @@ export async function sendFeedback({ message }) {
   })
   return parseOrThrow(res)
 }
+
+export async function getBillingStatus() {
+  const res = await fetch('/api/billing/status', {
+    headers: buildHeaders(),
+  })
+  return parseOrThrow(res)
+}
+
+export async function createProInvoice() {
+  const res = await fetch('/api/billing/invoice', {
+    method: 'POST',
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({}),
+  })
+  return parseOrThrow(res)
+}
+
+export async function listGrantedProUsers() {
+  const res = await fetch('/api/billing/grants', {
+    headers: buildHeaders(),
+  })
+  return parseOrThrow(res)
+}
+
+export async function grantProByUsername(username) {
+  const res = await fetch('/api/billing/grants', {
+    method: 'POST',
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ username }),
+  })
+  return parseOrThrow(res)
+}
+
+export async function revokePro(targetTelegramId) {
+  const res = await fetch('/api/billing/grants', {
+    method: 'DELETE',
+    headers: buildHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ targetTelegramId }),
+  })
+  return parseOrThrow(res)
+}

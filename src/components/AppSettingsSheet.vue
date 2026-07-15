@@ -2,7 +2,15 @@
 import { ref, toRef, watch } from 'vue'
 import IconFeedback from './icons/IconFeedback.vue'
 import { useBodyScrollLock } from '../lib/bodyScrollLock.js'
-import { addAdmin, removeAdmin } from '../lib/api.js'
+import {
+  addAdmin,
+  createProInvoice,
+  getBillingStatus,
+  grantProByUsername,
+  listGrantedProUsers,
+  removeAdmin,
+  revokePro,
+} from '../lib/api.js'
 import { checkAdmin } from '../lib/devMode.js'
 
 const props = defineProps({
@@ -20,6 +28,13 @@ const admins = ref([])
 const newAdminUsername = ref('')
 const adminError = ref('')
 const adminBusy = ref(false)
+const billing = ref(null)
+const billingError = ref('')
+const billingBusy = ref(false)
+const proUsers = ref([])
+const newProUsername = ref('')
+const proBusy = ref(false)
+const proError = ref('')
 
 async function loadAdmins() {
   if (!props.owner) return
@@ -27,12 +42,54 @@ async function loadAdmins() {
   admins.value = result.admins ?? []
 }
 
+async function loadBilling() {
+  billingError.value = ''
+  try {
+    billing.value = await getBillingStatus()
+  } catch (err) {
+    billingError.value = err.message
+  }
+}
+
+async function loadProUsers() {
+  if (!props.owner) return
+  proError.value = ''
+  try {
+    const result = await listGrantedProUsers()
+    proUsers.value = result.users ?? []
+  } catch (err) {
+    proError.value = err.message
+  }
+}
+
+async function refreshBillingAfterPayment(attempt = 0) {
+  await loadBilling()
+  if (billing.value?.hasPro || attempt >= 4) return
+
+  await new Promise((resolve) => window.setTimeout(resolve, 700))
+  return refreshBillingAfterPayment(attempt + 1)
+}
+
+function openInvoice(invoiceLink) {
+  const tg = window.Telegram?.WebApp
+  if (!tg?.openInvoice) {
+    throw new Error('Оплата доступна только внутри Telegram.')
+  }
+
+  return new Promise((resolve) => {
+    tg.openInvoice(invoiceLink, (status) => resolve(status))
+  })
+}
+
 // Список нужен, только пока открыта шторка и пользователь — владелец;
 // перезагружаем при каждом открытии, а не держим вечно закэшированным.
 watch(
   () => props.open,
   (isOpen) => {
-    if (isOpen) loadAdmins()
+    if (!isOpen) return
+    loadAdmins()
+    loadBilling()
+    loadProUsers()
   },
 )
 
@@ -65,6 +122,58 @@ async function submitRemoveAdmin(adminEntry) {
     adminBusy.value = false
   }
 }
+
+async function submitUpgrade() {
+  billingBusy.value = true
+  billingError.value = ''
+  try {
+    const { invoiceLink } = await createProInvoice()
+    const status = await openInvoice(invoiceLink)
+
+    if (status === 'paid') {
+      await refreshBillingAfterPayment()
+      return
+    }
+
+    if (status === 'failed') {
+      throw new Error('Telegram не смог провести оплату.')
+    }
+  } catch (err) {
+    billingError.value = err.message
+  } finally {
+    billingBusy.value = false
+  }
+}
+
+async function submitGrantPro() {
+  const username = newProUsername.value.trim()
+  if (!username) return
+
+  proBusy.value = true
+  proError.value = ''
+  try {
+    await grantProByUsername(username)
+    newProUsername.value = ''
+    await loadProUsers()
+  } catch (err) {
+    proError.value = err.message
+  } finally {
+    proBusy.value = false
+  }
+}
+
+async function submitRevokePro(user) {
+  proBusy.value = true
+  proError.value = ''
+  try {
+    await revokePro(user.telegram_id)
+    proUsers.value = proUsers.value.filter((entry) => entry.telegram_id !== user.telegram_id)
+  } catch (err) {
+    proError.value = err.message
+  } finally {
+    proBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -77,6 +186,33 @@ async function submitRemoveAdmin(adminEntry) {
       <IconFeedback />
       Оставить отзыв
     </button>
+
+    <section class="billing-card">
+      <div v-if="billing" class="billing-copy">
+        <p class="billing-kicker">{{ billing.hasPro ? 'Тариф активен' : 'Бесплатный тариф' }}</p>
+        <h3>{{ billing.hasPro ? 'ReadHelper Pro' : '1 книга в процессе бесплатно' }}</h3>
+        <p class="hint billing-hint">
+          <template v-if="billing.hasPro">
+            Лимит снят. Сейчас в процессе: {{ billing.activeBookCount }}.
+          </template>
+          <template v-else>
+            Сейчас в процессе: {{ billing.activeBookCount }} из
+            {{ billing.freeActiveBooksLimit }}. Pro снимает лимит навсегда.
+          </template>
+        </p>
+      </div>
+      <p v-else class="hint billing-hint">Загружаю статус тарифа…</p>
+
+      <button
+        v-if="billing && !billing.hasPro"
+        class="upgrade-btn"
+        :disabled="billingBusy"
+        @click="submitUpgrade"
+      >
+        {{ billingBusy ? 'Открываю оплату…' : `Купить Pro за ${billing.proPriceStars} ⭐` }}
+      </button>
+    </section>
+    <p v-if="billingError" class="error">{{ billingError }}</p>
 
     <template v-if="admin">
       <div class="setting-row">
@@ -106,6 +242,32 @@ async function submitRemoveAdmin(adminEntry) {
     </template>
 
     <template v-if="owner">
+      <h3 class="section-title">Подписки Pro</h3>
+
+      <ul v-if="proUsers.length" class="admin-list">
+        <li v-for="user in proUsers" :key="user.telegram_id" class="admin-item">
+          <span>@{{ user.username || user.telegram_id }}</span>
+          <button class="remove-btn" :disabled="proBusy" @click="submitRevokePro(user)">
+            Убрать
+          </button>
+        </li>
+      </ul>
+      <p v-else class="hint">Пока ни у кого нет активного Pro.</p>
+
+      <form class="admin-form" @submit.prevent="submitGrantPro">
+        <input
+          v-model="newProUsername"
+          class="admin-input"
+          type="text"
+          placeholder="username без @"
+        />
+        <button class="add-btn" type="submit" :disabled="proBusy || !newProUsername.trim()">
+          Выдать Pro
+        </button>
+      </form>
+      <p class="hint">Список включает всех пользователей с активным Pro. Выдать подписку можно только тому, кто уже хоть раз открывал приложение.</p>
+      <p v-if="proError" class="error">{{ proError }}</p>
+
       <h3 class="section-title">Админы</h3>
 
       <ul v-if="admins.length" class="admin-list">
@@ -190,6 +352,48 @@ async function submitRemoveAdmin(adminEntry) {
   border-radius: 12px;
   cursor: pointer;
   margin-bottom: 4px;
+}
+
+.billing-card {
+  background: linear-gradient(135deg, rgba(41, 98, 255, 0.12), rgba(31, 184, 205, 0.16));
+  border: 1px solid rgba(41, 98, 255, 0.12);
+  border-radius: 16px;
+  padding: 14px;
+  margin: 12px 0 2px;
+}
+
+.billing-kicker {
+  margin: 0 0 6px;
+  color: var(--hint);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.billing-card h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.billing-hint {
+  margin-top: 0;
+}
+
+.upgrade-btn {
+  width: 100%;
+  border: none;
+  background: var(--button);
+  color: var(--button-text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.upgrade-btn:disabled {
+  opacity: 0.6;
 }
 
 .setting-row {

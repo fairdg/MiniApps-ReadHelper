@@ -8,6 +8,8 @@ if (!token) {
 const commands = [
   { command: 'start', description: 'Открыть ReadHelper' },
   { command: 'help', description: 'Как пользоваться ботом' },
+  { command: 'support', description: 'Поддержка по оплате и сервису' },
+  { command: 'terms', description: 'Условия ReadHelper Pro' },
 ]
 
 const res = await fetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
